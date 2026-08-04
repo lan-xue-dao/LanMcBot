@@ -1,0 +1,19 @@
+{
+  "name": "mcbot",
+  "version": "1.1.0",
+  "description": "Minecraft mineflayer bot with 3D control panel, HTTP API and MCP server",
+  "license": "ISC",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "mcp": "node mcp-server.mjs",
+    "mcp:sse": "node mcp-server.mjs --transport=sse",
+    "mcp:stdio": "node mcp-server.mjs --transport=stdio"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "mineflayer": "^4.37.1",
+    "ws": "^8.21.2"
+  }
+}
