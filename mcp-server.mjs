@@ -4,24 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import mineflayer from 'mineflayer'
-import { createRequire } from 'module'
-
-const require = createRequire(import.meta.url)
-const config = require('./config.json')
-
-let bot = null
-let status = 'disconnected'
-
-function createBot() {
-  if (bot) return bot
-  bot = mineflayer.createBot(config)
-  bot.on('spawn', () => { status = 'connected' })
-  bot.on('error', () => { status = 'error' })
-  bot.on('kicked', () => { status = 'kicked'; bot = null })
-  bot.on('end', () => { status = 'disconnected'; bot = null })
-  return bot
-}
+import { createBot, getBot, destroyBot } from './lib/bot.mjs'
 
 const server = new Server(
   { name: 'mcbot', version: '1.0.0' },
@@ -85,12 +68,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_status': {
-        const b = bot
+        const b = getBot()
         return {
           content: [{
             type: 'text',
             text: JSON.stringify({
-              status,
+              connected: !!b,
               username: b?.username || null,
               health: b?.health || null,
               food: b?.food || null
@@ -138,8 +121,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'disconnect': {
-        if (bot) { bot.quit(); bot = null }
-        status = 'disconnected'
+        destroyBot()
         return { content: [{ type: 'text', text: '已断开' }] }
       }
 
