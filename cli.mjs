@@ -4,6 +4,7 @@ import { logRaw } from './lib/logger.mjs'
 import { handleCommand } from './lib/commands.mjs'
 import { startPassivePerception, stopPassivePerception } from './lib/perception/index.mjs'
 import { translateEntity, translateMessage } from './lib/i18n.mjs'
+import { notify as cornerNotify, render as renderCorner, reset as resetCorner } from './tui.mjs'
 
 console.log(`
   _   _                    ____        _
@@ -22,6 +23,7 @@ const rl = readline.createInterface({
 
 function addMessage(msg) {
   console.log(msg)
+  renderCorner()
 }
 
 function formatKickReason(reason) {
@@ -37,6 +39,7 @@ function formatKickReason(reason) {
 
 function exit() {
   bot.destroyBot()
+  resetCorner()
   rl.close()
   process.exit(0)
 }
@@ -48,16 +51,16 @@ bot.createBot((event, data) => {
       startPassivePerception((ev) => {
         switch (ev.type) {
           case 'damage':
-            addMessage(logRaw(`⚠ 受到伤害 - 生命值: ${ev.data.health} (-${ev.data.damage})`))
+            cornerNotify(`⚠ 受到伤害 ${ev.data.health} (-${ev.data.damage})`)
             break
           case 'entity_attack':
-            addMessage(logRaw(`⚠ ${translateEntity(ev.data.name)} 在攻击你! (${ev.data.distance}m)`))
+            cornerNotify(`⚠ ${translateEntity(ev.data.name)} 攻击你! (${ev.data.distance}m)`)
             break
           case 'entity_approach':
-            addMessage(logRaw(`📍 ${translateEntity(ev.data.name)} 接近中 (${ev.data.distance}m)`))
+            cornerNotify(`📍 ${translateEntity(ev.data.name)} 接近中 (${ev.data.distance}m)`)
             break
           case 'entity_leave':
-            addMessage(logRaw(`📍 ${translateEntity(ev.data.name)} 离开了`))
+            cornerNotify(`↪ ${translateEntity(ev.data.name)} 离开了`)
             break
         }
       })
@@ -105,5 +108,6 @@ rl.on('line', (input) => {
 
 rl.on('close', () => {
   bot.destroyBot()
+  resetCorner()
   process.exit(0)
 })
