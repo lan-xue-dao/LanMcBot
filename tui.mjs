@@ -20,6 +20,8 @@ function log(msg) {
 
 let botInstance = null
 let loggedIn = false
+let mcpProcess = null
+let mcpTransport = 'stdio'
 
 function App() {
   const [messages, setMessages] = React.useState([])
@@ -77,7 +79,16 @@ function App() {
     if (!cmd) return
 
     if (cmd === '！help' || cmd === '!help') {
-      setMessages(prev => [...prev, log('可用命令：'), log('  ！help   - 显示帮助'), log('  ！exit   - 退出'), log('  ！quit   - 退出'), log('  ！restart - 重启')])
+      setMessages(prev => [...prev,
+        log('可用命令：'),
+        log('  ！help      - 显示帮助'),
+        log('  ！exit      - 退出'),
+        log('  ！quit      - 退出'),
+        log('  ！restart   - 重启'),
+        log('  ！mcp       - 开关MCP服务器'),
+        log('  ！mcp-stdio - 设置MCP传输为stdio'),
+        log('  ！mcp-sse   - 设置MCP传输为sse')
+      ])
     } else if (cmd === '！exit' || cmd === '!exit' || cmd === '！quit' || cmd === '!quit') {
       if (botInstance) botInstance.quit()
       exit()
@@ -89,6 +100,27 @@ function App() {
       })
       child.unref()
       exit()
+    } else if (cmd === '！mcp' || cmd === '!mcp') {
+      if (mcpProcess) {
+        mcpProcess.kill()
+        mcpProcess = null
+        setMessages(prev => [...prev, log('MCP 服务器已停止')])
+      } else {
+        mcpProcess = spawn('node', ['mcp-server.mjs', '--transport', mcpTransport], {
+          stdio: 'ignore',
+          detached: true
+        })
+        mcpProcess.unref()
+        mcpProcess.on('error', () => { mcpProcess = null })
+        mcpProcess.on('exit', () => { mcpProcess = null })
+        setMessages(prev => [...prev, log(`MCP 服务器已启动 (transport: ${mcpTransport})`)])
+      }
+    } else if (cmd === '！mcp-stdio' || cmd === '!mcp-stdio') {
+      mcpTransport = 'stdio'
+      setMessages(prev => [...prev, log('MCP 传输模式切换为: stdio')])
+    } else if (cmd === '！mcp-sse' || cmd === '!mcp-sse') {
+      mcpTransport = 'sse'
+      setMessages(prev => [...prev, log('MCP 传输模式切换为: sse')])
     } else {
       setMessages(prev => [...prev, log('[发送] ' + cmd)])
       if (botInstance) botInstance.chat(cmd)
