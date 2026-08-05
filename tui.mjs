@@ -370,6 +370,9 @@ bot.createBot((event, data) => {
     case 'goal_reached':
       addMessage(logRaw('📍 已到达目标'))
       break
+    case 'path_update':
+      addMessage(logRaw(`🧭 寻路状态: ${data.status}`))
+      break
     case 'path_failed':
       addMessage(logRaw('⚠ 无法到达目标 (无路径/超时)'))
       break
