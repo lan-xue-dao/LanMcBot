@@ -1,1 +1,1 @@
-import('./tui.mjs')
+import('./cli.mjs')
