@@ -382,6 +382,9 @@ bot.createBot((event, data) => {
     case 'sleep_failed':
       addMessage(logRaw(`⚠ 睡觉失败: ${data.err}`))
       break
+    case 'item_dropped':
+      addMessage(logRaw(`📤 已丢出 ${data.name} ×${data.count}`))
+      break
   }
 })
 
