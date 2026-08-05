@@ -4,6 +4,7 @@ const readline = require('readline')
 const config = require('./config.json')
 
 const bot = mineflayer.createBot(config)
+let loggedIn = false
 
 const logFile = `chat_${new Date().toISOString().slice(0,10)}.log`
 
@@ -15,6 +16,7 @@ function log(msg) {
 }
 
 bot.on('spawn', () => {
+  loggedIn = true
   log('Bot 已进入游戏')
 })
 
@@ -27,6 +29,7 @@ bot.on('chat', (username, message) => {
 
 bot.on('messagestr', msg => {
   log('[消息] ' + msg)
+  if (loggedIn) return
   if (/login/i.test(msg)) {
     bot.chat('/login ' + config.password)
     log('已自动登录')
@@ -64,6 +67,7 @@ rl.on('line', input => {
     bot.quit()
     process.exit(1)
   } else {
+    log('[发送] ' + cmd)
     bot.chat(cmd)
   }
 })

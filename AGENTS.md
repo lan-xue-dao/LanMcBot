@@ -22,3 +22,15 @@ npm start        # node index.js
 - 语言 / Language: 中文 (聊天消息、日志输出)
 - 日志 / Logs: `chat_YYYY-MM-DD.log` (已 gitignore)
 - 认证 / Auth: 默认离线模式 / offline mode by default
+
+## CLI 命令 / CLI Commands
+
+- `!help` / `！help` - 显示帮助
+- `!exit` / `！exit` - 退出
+- `!quit` / `！quit` - 退出
+- `!restart` / `！restart` - 重启
+
+## 注意事项 / Notes
+
+- `messagestr` 事件中的 `loggedIn` 标志防止登录后重复触发自动登录
+- 中英文感叹号都支持 / Both Chinese and English exclamation marks supported
