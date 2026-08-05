@@ -127,12 +127,8 @@ function App() {
   )
 }
 
-const instance = render(React.createElement(App), {
+render(React.createElement(App), {
   exitOnCtrlC: false,
   patchConsole: false,
   alternateScreen: true
-})
-
-process.stdout.on('resize', () => {
-  instance.rerender(React.createElement(App))
 })
