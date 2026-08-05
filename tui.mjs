@@ -4,9 +4,12 @@ import { logRaw } from './lib/logger.mjs'
 import { handleCommand } from './lib/commands.mjs'
 import { startPassivePerception, stopPassivePerception, getStatus } from './lib/perception/index.mjs'
 import { translateEntity, translateMessage } from './lib/i18n.mjs'
+import { getMinimap } from './lib/minimap.mjs'
 
-const STATUS_ROWS = 4
-const NOTIFY_ROWS = 4
+const MAP_ROWS = 11
+const HUD_ROWS = MAP_ROWS + 1
+const MAP_W = MAP_ROWS
+const NOTIFY_ROWS = MAP_ROWS
 const PANEL_WIDTH = 42
 const MAX_HISTORY = 500
 
@@ -14,6 +17,7 @@ let history = []
 let scrollOffset = 0
 let statusLines = []
 let notifications = []
+let mapLines = null
 let input = ''
 let cursor = 0
 let cmdHistory = []
@@ -74,12 +78,35 @@ function notify(text) {
   render()
 }
 
+function buildMapLine(row, width = MAP_W) {
+  let out = ''
+  for (const ch of row) {
+    let c = '\x1b[90m'
+    if (ch === '≈') c = '\x1b[36m'
+    else if (ch === '∆') c = '\x1b[91m'
+    else if (ch === '@') c = '\x1b[32m'
+    else if (ch === '!' || ch === 'P') c = '\x1b[91m'
+    else if (ch === ' ') c = '\x1b[37m'
+    out += c + ch
+  }
+  return out + '\x1b[0m'
+}
+
+function yawToDir(yaw) {
+  if (yaw == null) return '?'
+  const dirs = ['南', '西南', '西', '西北', '北', '东北', '东', '东南']
+  const d = Math.round(yaw / (Math.PI / 4))
+  return dirs[((d % 8) + 8) % 8]
+}
+
 function refreshStatus() {
   const status = getStatus()
   if (!status) {
     setStatus(['尚未连接'])
+    mapLines = null
     return
   }
+  const b = bot.getBot()
   const lines = []
   if (status.health != null) {
     const hpBar = '█'.repeat(Math.round(status.health / 2)) + '░'.repeat(Math.max(0, 10 - Math.round(status.health / 2)))
@@ -92,9 +119,13 @@ function refreshStatus() {
   if (status.position) {
     lines.push(`📍 ${status.position.x}, ${status.position.y}, ${status.position.z}`)
   }
+  if (b && b.entity) {
+    lines.push(`🧭 朝向: ${yawToDir(b.entity.yaw)}`)
+  }
   if (bot.isSleeping()) {
     lines.push('💤 睡觉中')
   }
+  mapLines = getMinimap(b)
   setStatus(lines)
 }
 
@@ -104,25 +135,38 @@ function render() {
   if (cols < 50 || rows < 10) return
 
   const lines = []
+  const leftW = 20
+  const rightW = cols - leftW - MAP_W - 4
+  const leftC = '\x1b[32m'
+  const rightC = '\x1b[36m'
+  const titleC = '\x1b[1;36m'
+  const mapBorderC = '\x1b[90m'
+  const reset = '\x1b[0m'
 
-  for (let i = 0; i < STATUS_ROWS; i++) {
-    const left = statusLines[i] || ''
-    const right = i === 0 ? '── 感知通知 ──' : (notifications[i - 1] || '')
-    const colorLeft = '\x1b[32m'
-    const colorRight = i === 0 ? '\x1b[36m' : '\x1b[33m'
-    const reset = '\x1b[0m'
-    const leftText = truncate(left, PANEL_WIDTH)
-    const rightText = truncate(right, PANEL_WIDTH)
+  for (let i = 0; i < HUD_ROWS; i++) {
+    if (i === 0) {
+      lines.push(
+        leftC + pad('── 状态 ──', leftW) + reset +
+        mapBorderC + pad('', 1) + titleC + pad('── 小地图 ──', MAP_W) + reset +
+        mapBorderC + pad('', 1) + reset +
+        rightC + pad('── 感知 ──', rightW) + reset
+      )
+      continue
+    }
+    const leftText = statusLines[i - 1] || ''
+    const rightText = notifications[i - 1] || ''
+    const mapRow = mapLines ? buildMapLine(mapLines[i - 1]) : null
+    const mid = mapRow || pad('', MAP_W)
     lines.push(
-      colorLeft + pad(leftText, PANEL_WIDTH) + reset +
-      pad('', cols - PANEL_WIDTH * 2 - 2) +
-      colorRight + pad(rightText, PANEL_WIDTH) + reset
+      leftC + pad(truncate(leftText, leftW), leftW) + reset +
+      mapBorderC + '│' + mid + '│' + reset +
+      rightC + pad(truncate(rightText, rightW), rightW) + reset
     )
   }
 
   lines.push(pad('─'.repeat(cols), cols))
 
-  const chatRows = rows - STATUS_ROWS - 2
+  const chatRows = rows - HUD_ROWS - 2
   const maxOffset = Math.max(0, history.length - chatRows)
   if (scrollOffset > maxOffset) scrollOffset = maxOffset
 
@@ -147,7 +191,7 @@ function render() {
 
 function scrollChat(delta) {
   const { rows } = getSize()
-  const chatRows = rows - STATUS_ROWS - 2
+  const chatRows = rows - HUD_ROWS - 2
   const maxOffset = Math.max(0, history.length - chatRows)
   scrollOffset = Math.min(maxOffset, Math.max(0, scrollOffset + delta))
   render()
