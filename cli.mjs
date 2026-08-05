@@ -2,9 +2,8 @@ import readline from 'readline'
 import * as bot from './lib/bot.mjs'
 import { logRaw } from './lib/logger.mjs'
 import { handleCommand } from './lib/commands.mjs'
-import { startPassivePerception, stopPassivePerception, getStatus } from './lib/perception/index.mjs'
+import { startPassivePerception, stopPassivePerception } from './lib/perception/index.mjs'
 import { translateEntity, translateMessage } from './lib/i18n.mjs'
-import { notify as cornerNotify, render as renderCorner, setStatus as setStatusUi, reset as resetCorner } from './tui.mjs'
 
 console.log(`
   _   _                    ____        _
@@ -23,7 +22,6 @@ const rl = readline.createInterface({
 
 function addMessage(msg) {
   console.log(msg)
-  renderCorner()
 }
 
 function formatKickReason(reason) {
@@ -39,36 +37,9 @@ function formatKickReason(reason) {
 
 function exit() {
   bot.destroyBot()
-  resetCorner()
   rl.close()
   process.exit(0)
 }
-
-function refreshStatus() {
-  const status = getStatus()
-  if (!status) {
-    setStatusUi(['尚未连接'])
-    return
-  }
-  const lines = []
-  if (status.health != null) {
-    const hpBar = '█'.repeat(Math.round(status.health / 2)) + '░'.repeat(Math.max(0, 10 - Math.round(status.health / 2)))
-    lines.push(`❤ ${hpBar} ${status.health}/20`)
-  }
-  if (status.food != null) {
-    const foodBar = '█'.repeat(Math.round(status.food / 2)) + '░'.repeat(Math.max(0, 10 - Math.round(status.food / 2)))
-    lines.push(`🍗 ${foodBar} ${status.food}/20`)
-  }
-  if (status.position) {
-    lines.push(`📍 ${status.position.x}, ${status.position.y}, ${status.position.z}`)
-  }
-  if (bot.isSleeping()) {
-    lines.push('💤 睡觉中')
-  }
-  setStatusUi(lines)
-}
-
-setInterval(refreshStatus, 1000)
 
 bot.createBot((event, data) => {
   switch (event) {
@@ -77,16 +48,16 @@ bot.createBot((event, data) => {
       startPassivePerception((ev) => {
         switch (ev.type) {
           case 'damage':
-            cornerNotify(`⚠ 受到伤害 ${ev.data.health} (-${ev.data.damage})`)
+            addMessage(logRaw(`⚠ 受到伤害 - 生命值: ${ev.data.health} (-${ev.data.damage})`))
             break
           case 'entity_attack':
-            cornerNotify(`⚠ ${translateEntity(ev.data.name)} 攻击你! (${ev.data.distance}m)`)
+            addMessage(logRaw(`⚠ ${translateEntity(ev.data.name)} 在攻击你! (${ev.data.distance}m)`))
             break
           case 'entity_approach':
-            cornerNotify(`📍 ${translateEntity(ev.data.name)} 接近中 (${ev.data.distance}m)`)
+            addMessage(logRaw(`📍 ${translateEntity(ev.data.name)} 接近中 (${ev.data.distance}m)`))
             break
           case 'entity_leave':
-            cornerNotify(`↪ ${translateEntity(ev.data.name)} 离开了`)
+            addMessage(logRaw(`📍 ${translateEntity(ev.data.name)} 离开了`))
             break
         }
       })
@@ -149,6 +120,5 @@ rl.on('line', (input) => {
 
 rl.on('close', () => {
   bot.destroyBot()
-  resetCorner()
   process.exit(0)
 })
