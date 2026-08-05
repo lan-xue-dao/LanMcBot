@@ -123,11 +123,11 @@ function render() {
   const chatRows = rows - STATUS_ROWS - 2
   const visible = history.slice(-chatRows)
   const padTop = chatRows - visible.length
-  for (let i = 0; i < padTop; i++) lines.push('')
+  for (let i = 0; i < padTop; i++) lines.push(pad('', cols))
   for (const h of visible) {
-    lines.push(truncate(h, cols - 1))
+    lines.push(pad(truncate(h, cols), cols))
   }
-  while (lines.length < rows - 1) lines.push('')
+  while (lines.length < rows - 1) lines.push(pad('', cols))
 
   const promptText = '> ' + input
   const cursorCol = 3 + displayWidth(input.slice(0, cursor))
@@ -270,7 +270,10 @@ function startTui() {
   readline.emitKeypressEvents(process.stdin)
   process.stdin.setRawMode(true)
   process.stdin.on('keypress', handleKeypress)
-  process.stdout.on('resize', render)
+  process.stdout.on('resize', () => {
+    process.stdout.write('\x1b[2J')
+    render()
+  })
   started = true
 
   addMessage(logRaw('交互模式已启动 - !help 查看命令'))
