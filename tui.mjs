@@ -1,6 +1,8 @@
 const CORNER_ROWS = 4
 const CORNER_WIDTH = 40
+const STATUS_ROWS = 4
 let notifications = []
+let statusLines = []
 let renderScheduled = false
 
 function displayWidth(str) {
@@ -29,6 +31,11 @@ export function notify(text) {
   render()
 }
 
+export function setStatus(lines) {
+  statusLines = lines
+  render()
+}
+
 export function render() {
   if (!process.stdout.isTTY) return
 
@@ -36,8 +43,16 @@ export function render() {
   const rows = process.stdout.rows || 24
   if (cols < 50 || rows < 10) return
 
-  const x = cols - CORNER_WIDTH - 1
   process.stdout.write('\x1b[s')
+
+  renderCorner(cols)
+  renderStatus(cols)
+
+  process.stdout.write('\x1b[u')
+}
+
+function renderCorner(cols) {
+  const x = cols - CORNER_WIDTH - 1
 
   for (let i = 0; i < CORNER_ROWS; i++) {
     const y = i + 1
@@ -58,11 +73,23 @@ export function render() {
     process.stdout.write(padded + ' '.repeat(fill > 0 ? fill : 0))
     process.stdout.write('\x1b[0m')
   }
+}
 
-  process.stdout.write('\x1b[u')
+function renderStatus(cols) {
+  const x = 1
+
+  for (let i = 0; i < STATUS_ROWS; i++) {
+    const y = i + 1
+    process.stdout.write(`\x1b[${y};${x}H\x1b[K`)
+    const line = statusLines[i] || ''
+    const padded = truncate(line, CORNER_WIDTH)
+    const fill = CORNER_WIDTH - displayWidth(padded)
+    process.stdout.write('\x1b[32m' + padded + ' '.repeat(fill > 0 ? fill : 0) + '\x1b[0m')
+  }
 }
 
 export function reset() {
   notifications = []
+  statusLines = []
   if (process.stdout.isTTY) process.stdout.write('\x1b[0m')
 }
