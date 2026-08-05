@@ -108,6 +108,12 @@ bot.createBot((event, data) => {
     case 'item_dropped':
       addMessage(logRaw(`📤 已丢出 ${data.name} ×${data.count}`))
       break
+    case 'block_placed':
+      addMessage(logRaw(`🧱 已放置 ${data.name} 到 (${data.x}, ${data.y}, ${data.z})`))
+      break
+    case 'place_failed':
+      addMessage(logRaw(`⚠ 放置失败: ${data.err}`))
+      break
   }
 })
 
