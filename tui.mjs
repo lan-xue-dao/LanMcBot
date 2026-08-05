@@ -156,6 +156,10 @@ function scrollChat(delta) {
 function handleKeypress(str, key) {
   if (!key) return
 
+  if (str && /^\x1b\[</.test(str)) {
+    return
+  }
+
   if (key.ctrl && key.name === 'c') {
     exit()
     return
