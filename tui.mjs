@@ -4,6 +4,7 @@ import TextInput from 'ink-text-input'
 import * as bot from './lib/bot.mjs'
 import { logRaw } from './lib/logger.mjs'
 import { handleCommand } from './lib/commands.mjs'
+import { startPassivePerception, stopPassivePerception } from './lib/perception/index.mjs'
 
 function App() {
   const [messages, setMessages] = React.useState([])
@@ -19,6 +20,22 @@ function App() {
       switch (event) {
         case 'spawn':
           addMessage(logRaw('Bot 已进入游戏'))
+          startPassivePerception((event) => {
+            switch (event.type) {
+              case 'damage':
+                addMessage(logRaw(`⚠ 受到伤害 - 生命值: ${event.data.health} (-${event.data.damage})`))
+                break
+              case 'entity_attack':
+                addMessage(logRaw(`⚠ ${event.data.name} 在攻击你! (${event.data.distance}m)`))
+                break
+              case 'entity_approach':
+                addMessage(logRaw(`📍 ${event.data.name} 接近中 (${event.data.distance}m)`))
+                break
+              case 'entity_leave':
+                addMessage(logRaw(`📍 ${event.data.name} 离开了`))
+                break
+            }
+          })
           break
         case 'chat':
           addMessage(logRaw(`<${data.username}> ${data.message}`))
@@ -37,9 +54,11 @@ function App() {
           break
         case 'kicked':
           addMessage(logRaw('被踢出: ' + data.reason))
+          stopPassivePerception()
           break
         case 'end':
           addMessage(logRaw('连接断开: ' + (data.reason || '未知原因')))
+          stopPassivePerception()
           break
         case 'reconnect_start':
           addMessage(logRaw(`开始自动重连 (${data.attempt}/${data.max})`))
@@ -50,7 +69,10 @@ function App() {
       }
     })
 
-    return () => bot.destroyBot()
+    return () => {
+      stopPassivePerception()
+      bot.destroyBot()
+    }
   }, [])
 
   useInput((inputChar, key) => {
