@@ -48,6 +48,11 @@ const rl = readline.createInterface({
   output: process.stdout
 })
 
+function clearLine() {
+  rl.cursorTo(process.stdout, 0)
+  rl.clearLine(process.stdout, 0)
+}
+
 rl.on('line', input => {
   const cmd = input.trim()
   if (!cmd) return
@@ -69,5 +74,6 @@ rl.on('line', input => {
   } else {
     log('[发送] ' + cmd)
     bot.chat(cmd)
+    setTimeout(clearLine, 1000)
   }
 })

@@ -34,3 +34,5 @@ npm start        # node index.js
 
 - `messagestr` 事件中的 `loggedIn` 标志防止登录后重复触发自动登录
 - 中英文感叹号都支持 / Both Chinese and English exclamation marks supported
+- 发送消息成功1秒后自动清除控制台提示，失败则保留
+- `clearLine()` 使用 readline 清除控制台行
