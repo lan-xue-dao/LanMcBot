@@ -93,6 +93,12 @@ bot.createBot((event, data) => {
     case 'reconnect_attempt':
       addMessage(logRaw(`正在重连... (第${data.attempt}次)`))
       break
+    case 'goal_reached':
+      addMessage(logRaw('📍 已到达目标'))
+      break
+    case 'path_failed':
+      addMessage(logRaw('⚠ 无法到达目标 (无路径/超时)'))
+      break
   }
 })
 
