@@ -99,6 +99,7 @@ function App() {
     React.createElement(Box, {
       flexDirection: 'column',
       flexGrow: 1,
+      flexShrink: 1,
       borderStyle: 'round',
       borderColor: 'cyan',
       padding: 1
@@ -110,6 +111,7 @@ function App() {
     React.createElement(Box, {
       flexDirection: 'column',
       height: 3,
+      flexShrink: 0,
       borderStyle: 'round',
       borderColor: 'green',
       padding: 0
