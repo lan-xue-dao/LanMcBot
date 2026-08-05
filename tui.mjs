@@ -38,6 +38,15 @@ function App() {
         case 'kicked':
           addMessage(logRaw('被踢出: ' + data.reason))
           break
+        case 'end':
+          addMessage(logRaw('连接断开: ' + (data.reason || '未知原因')))
+          break
+        case 'reconnect_start':
+          addMessage(logRaw(`开始自动重连 (${data.attempt}/${data.max})`))
+          break
+        case 'reconnect_attempt':
+          addMessage(logRaw(`正在重连... (第${data.attempt}次)`))
+          break
       }
     })
 
