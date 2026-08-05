@@ -99,6 +99,15 @@ bot.createBot((event, data) => {
     case 'path_failed':
       addMessage(logRaw('⚠ 无法到达目标 (无路径/超时)'))
       break
+    case 'sleep_started':
+      addMessage(logRaw('💤 已入睡'))
+      break
+    case 'woke_up':
+      addMessage(logRaw('🌅 醒来了'))
+      break
+    case 'sleep_failed':
+      addMessage(logRaw(`⚠ 睡觉失败: ${data.err}`))
+      break
   }
 })
 
