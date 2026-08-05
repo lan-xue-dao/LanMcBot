@@ -154,20 +154,6 @@ function scrollChat(delta) {
 }
 
 function handleKeypress(str, key) {
-  if (str && str.startsWith('\x1b[<')) {
-    const m = str.match(/<(\d+);(\d+);(\d+)M/)
-    if (m) {
-      const btn = parseInt(m[1], 10)
-      if (btn === 64) {
-        scrollChat(1)
-        return
-      }
-      if (btn === 65) {
-        scrollChat(-1)
-        return
-      }
-    }
-  }
   if (!key) return
 
   if (key.ctrl && key.name === 'c') {
@@ -305,7 +291,7 @@ function startTui() {
     process.exit(1)
   }
 
-  process.stdout.write('\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h')
+  process.stdout.write('\x1b[?1049h\x1b[?25l')
   readline.emitKeypressEvents(process.stdin)
   process.stdin.setRawMode(true)
   process.stdin.on('keypress', handleKeypress)
@@ -322,7 +308,7 @@ function startTui() {
 
 function stopTui() {
   if (!started) return
-  process.stdout.write('\x1b[?25h\x1b[?1000l\x1b[?1006l\x1b[?1049l')
+  process.stdout.write('\x1b[?25h\x1b[?1049l')
   process.stdin.setRawMode(false)
   process.stdout.removeListener('resize', render)
   started = false
