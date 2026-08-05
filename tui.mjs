@@ -125,4 +125,8 @@ function App() {
   )
 }
 
-render(React.createElement(App))
+render(React.createElement(App), {
+  exitOnCtrlC: false,
+  patchConsole: false,
+  alternateScreen: true
+})
