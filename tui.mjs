@@ -11,6 +11,7 @@ const PANEL_WIDTH = 42
 const MAX_HISTORY = 500
 
 let history = []
+let scrollOffset = 0
 let statusLines = []
 let notifications = []
 let input = ''
@@ -58,6 +59,7 @@ function getSize() {
 function addMessage(text) {
   history.push(String(text))
   if (history.length > MAX_HISTORY) history.shift()
+  scrollOffset = 0
   render()
 }
 
@@ -121,7 +123,12 @@ function render() {
   lines.push(pad('─'.repeat(cols), cols))
 
   const chatRows = rows - STATUS_ROWS - 2
-  const visible = history.slice(-chatRows)
+  const maxOffset = Math.max(0, history.length - chatRows)
+  if (scrollOffset > maxOffset) scrollOffset = maxOffset
+
+  const endIdx = history.length - scrollOffset
+  const startIdx = Math.max(0, endIdx - chatRows)
+  const visible = history.slice(startIdx, endIdx)
   const padTop = chatRows - visible.length
   for (let i = 0; i < padTop; i++) lines.push(pad('', cols))
   for (const h of visible) {
@@ -138,11 +145,43 @@ function render() {
   writeAt(cursorCol, rows, '')
 }
 
+function scrollChat(delta) {
+  const { rows } = getSize()
+  const chatRows = rows - STATUS_ROWS - 2
+  const maxOffset = Math.max(0, history.length - chatRows)
+  scrollOffset = Math.min(maxOffset, Math.max(0, scrollOffset + delta))
+  render()
+}
+
 function handleKeypress(str, key) {
+  if (str && str.startsWith('\x1b[<')) {
+    const m = str.match(/<(\d+);(\d+);(\d+)M/)
+    if (m) {
+      const btn = parseInt(m[1], 10)
+      if (btn === 64) {
+        scrollChat(1)
+        return
+      }
+      if (btn === 65) {
+        scrollChat(-1)
+        return
+      }
+    }
+  }
   if (!key) return
 
   if (key.ctrl && key.name === 'c') {
     exit()
+    return
+  }
+
+  if (key.name === 'pageup') {
+    scrollChat(5)
+    return
+  }
+
+  if (key.name === 'pagedown') {
+    scrollChat(-5)
     return
   }
 
@@ -266,7 +305,7 @@ function startTui() {
     process.exit(1)
   }
 
-  process.stdout.write('\x1b[?1049h\x1b[?25l')
+  process.stdout.write('\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h')
   readline.emitKeypressEvents(process.stdin)
   process.stdin.setRawMode(true)
   process.stdin.on('keypress', handleKeypress)
@@ -283,7 +322,7 @@ function startTui() {
 
 function stopTui() {
   if (!started) return
-  process.stdout.write('\x1b[?25h\x1b[?1049l')
+  process.stdout.write('\x1b[?25h\x1b[?1000l\x1b[?1006l\x1b[?1049l')
   process.stdin.setRawMode(false)
   process.stdout.removeListener('resize', render)
   started = false
