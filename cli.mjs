@@ -3,6 +3,7 @@ import * as bot from './lib/bot.mjs'
 import { logRaw } from './lib/logger.mjs'
 import { handleCommand } from './lib/commands.mjs'
 import { startPassivePerception, stopPassivePerception } from './lib/perception/index.mjs'
+import { translateEntity, translateMessage } from './lib/i18n.mjs'
 
 console.log(`
   _   _                    ____        _
@@ -50,13 +51,13 @@ bot.createBot((event, data) => {
             addMessage(logRaw(`⚠ 受到伤害 - 生命值: ${ev.data.health} (-${ev.data.damage})`))
             break
           case 'entity_attack':
-            addMessage(logRaw(`⚠ ${ev.data.name} 在攻击你! (${ev.data.distance}m)`))
+            addMessage(logRaw(`⚠ ${translateEntity(ev.data.name)} 在攻击你! (${ev.data.distance}m)`))
             break
           case 'entity_approach':
-            addMessage(logRaw(`📍 ${ev.data.name} 接近中 (${ev.data.distance}m)`))
+            addMessage(logRaw(`📍 ${translateEntity(ev.data.name)} 接近中 (${ev.data.distance}m)`))
             break
           case 'entity_leave':
-            addMessage(logRaw(`📍 ${ev.data.name} 离开了`))
+            addMessage(logRaw(`📍 ${translateEntity(ev.data.name)} 离开了`))
             break
         }
       })
@@ -64,7 +65,7 @@ bot.createBot((event, data) => {
     case 'chat':
       break
     case 'messagestr':
-      addMessage(logRaw('[消息] ' + data.msg))
+      addMessage(logRaw('[消息] ' + translateMessage(data.msg)))
       break
     case 'auto_login':
       addMessage(logRaw('已自动登录'))
