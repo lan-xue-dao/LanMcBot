@@ -1,0 +1,8 @@
+{
+  "host": "example.com",
+  "port": 25565,
+  "username": "PlayerName",
+  "auth": "offline",
+  "password": "change-me",
+  "ui": "cli"
+}
