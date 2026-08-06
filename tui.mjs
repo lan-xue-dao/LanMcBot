@@ -8,7 +8,7 @@ import { getMinimap } from './lib/minimap.mjs'
 
 const MAP_ROWS = 11
 const HUD_ROWS = MAP_ROWS + 1
-const MAP_W = MAP_ROWS
+const MAP_W = 22
 const NOTIFY_ROWS = MAP_ROWS
 const PANEL_WIDTH = 42
 const MAX_HISTORY = 500
@@ -134,7 +134,7 @@ function refreshStatus() {
   if (bot.isSleeping()) {
     lines.push('💤 睡觉中')
   }
-  mapLines = getMinimap(b)
+  mapLines = getMinimap(b, { width: MAP_W, height: MAP_ROWS * 2 })
   setStatus(lines)
 }
 
