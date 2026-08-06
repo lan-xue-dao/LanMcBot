@@ -28,10 +28,12 @@ lib/
   bot.mjs          # 机器人核心：连接/重连/寻路/聊天指令
   commands.mjs     # CLI 命令（!前缀）
   i18n.mjs         # 中文翻译查询（配合 lib/data/zh_cn.json）
+  minimap.mjs      # 彩色小地图（俯视，按列最高方块采样）
   config.mjs / logger.mjs
   perception/
-    active/scan.mjs      # 主动感知（命令触发，16×16×16 立方体，radius 8）
-    passive/monitor.mjs  # 被动监听（受伤/攻击/实体接近，过滤物品实体）
+    index.mjs           # 感知统一导出（scan + monitor + environment）
+    active/scan.mjs     # 主动感知（命令触发，16×16×16 立方体，radius 8）
+    passive/monitor.mjs # 被动监听（受伤/攻击/实体接近，过滤物品实体）
 ```
 
 ## 命令 / Commands
@@ -56,12 +58,17 @@ lib/
 ## 注意事项 / Notes
 
 - `package.json` 是 `"type": "commonjs"`，界面与库文件用 `.mjs` ESM，`index.js` 动态 `import()` 加载；新增文件注意扩展名
-- 寻路已配置：`canDig=false`（不破坏方块）、`canOpenDoors=true`、禁用跑酷/搭方块；到达用 `goal_reached` 事件（防抖 10s）
+- 寻路：`canDig=false`（不破坏方块）、`canOpenDoors=true`、`allowParkour=true`（翻半砖/栅栏）、`allow1by1towers=false`（不搭方块）；到达用 `goal_reached` 事件（防抖 10s）
+- **门补丁**：mineflayer-pathfinder 的 `openable` 集合默认只含栅栏门（`name.includes('gate')`），普通木门被当墙；`setupPathfinder`（lib/bot.mjs）手动把非铁门 `*_door` 的 ID 加入 `movements.openable`
+- **`Movements` 必须在 `spawn` 后创建**：`bot.registry` 连接后才有，`createBot` 时同步 `new Movements(bot)` 会崩 `registry.blocksByName`（历史上踩过）
+- `path_update` 上报节流：同状态 2 秒内不重复（防刷屏）；`goal_reached` 10s 防抖
 - 自动重连：断开后 5 秒重试，最多 3 次；重连后 3 秒自动补发 `/server <原服务器>` 回服
 - 自动登录：`messagestr` 检测到 login/register 提示时自动用 `config.password`
-- 翻译表 `lib/data/zh_cn.json` 为官方 mcmeta 1.20.4（6538 键）；`blockIdFromZh` 做中文方块名反查
+- 翻译表 `lib/data/zh_cn.json` 为官方 mcmeta 1.20.4（6538 键）；`blockIdFromZh` 反查中文方块名；`translateBlock/translateEntity` 查不到时做归一化反查（忽略空格/连字符，支持显示名如 `Oak Sign`）
+- 物品名匹配：`dropItem/getItemCount/placeBlock` 支持中文名、带空格显示名、引号（`丢 "Oak Sign" 1`）、连字符
 - 被动感知只跟踪 8 格内实体，物品实体已过滤（防刷屏）
 - 日志写入 `chat_YYYY-MM-DD.log`（已 gitignore）
-- 无测试套件：改动后用 `node --check <file>` 验证语法，功能需连真实服务器验证
+- 无测试套件：改动后用 `node --check <file>` 验证语法；地图/渲染逻辑可写临时假 bot 脚本验证，功能需连真实服务器验证
 - Windows 下中文乱码时运行 `chcp 65001`
-- TUI 用 alternateScreen 且退出恢复；PgUp/PgDn 滚动历史；SGR 鼠标序列已过滤；鼠标协议（?1000h/?1006h）曾引发输入错乱已回退，勿轻易重开
+- TUI 顶部三栏 HUD：左状态 / 中 11×11 小地图 / 右感知通知；地图用 **256 色背景**（`48;5`，conhost 不支持 truecolor `48;2`），每列从世界顶（`bot.game.minY+height`）往下扫最表层方块上色；PgUp/PgDn 滚动历史；SGR 鼠标序列已过滤；鼠标协议（?1000h/?1006h）曾引发输入错乱已回退，勿轻易重开
+- 小地图每帧最多 384 层 × 121 格 blockAt 采样，若 TUI 卡顿先优化 `topColor` 扫描起点，勿直接加依赖（`@aresrpg/aresrpg-map-colors` 因依赖 `cwise` 需 git+ssh 装不上）
