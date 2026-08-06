@@ -78,16 +78,18 @@ function notify(text) {
   render()
 }
 
-function buildMapLine(row, width = MAP_W) {
-  let out = ''
-  for (const ch of row) {
-    let c = '\x1b[90m'
-    if (ch === '≈') c = '\x1b[36m'
-    else if (ch === '∆') c = '\x1b[91m'
-    else if (ch === '@') c = '\x1b[32m'
-    else if (ch === '!' || ch === 'P') c = '\x1b[91m'
-    else if (ch === ' ') c = '\x1b[37m'
-    out += c + ch
+function buildMapRow(row, width = MAP_W) {
+  let out = '\x1b[40m'
+  for (const cell of row) {
+    const ch = cell.ch || ' '
+    let bg = '\x1b[40m'
+    if (cell.bg) bg = `\x1b[48;2;${cell.bg[0]};${cell.bg[1]};${cell.bg[2]}m`
+    let fg = ''
+    if (ch === '@') fg = '\x1b[32;1m'
+    else if (ch === 'P') fg = '\x1b[33;1m'
+    else if (ch === '!') fg = '\x1b[91;1m'
+    if (ch === '') fg = '\x1b[97m'
+    out += bg + fg + (ch || ' ') + '\x1b[0m'
   }
   return out + '\x1b[0m'
 }
