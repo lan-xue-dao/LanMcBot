@@ -78,18 +78,30 @@ function notify(text) {
   render()
 }
 
+function rgbTo256(r, g, b) {
+  if (Math.abs(r - g) < 12 && Math.abs(g - b) < 12) {
+    const gray = Math.round((r + g + b) / 3)
+    if (gray < 8) return 16
+    if (gray > 247) return 231
+    return 232 + Math.round((gray - 8) / 10)
+  }
+  const ri = Math.round(r / 51)
+  const gi = Math.round(g / 51)
+  const bi = Math.round(b / 51)
+  return 16 + 36 * ri + 6 * gi + bi
+}
+
 function buildMapRow(row, width = MAP_W) {
   let out = '\x1b[40m'
   for (const cell of row) {
     const ch = cell.ch || ' '
     let bg = '\x1b[40m'
-    if (cell.bg) bg = `\x1b[48;2;${cell.bg[0]};${cell.bg[1]};${cell.bg[2]}m`
+    if (cell.bg) bg = `\x1b[48;5;${rgbTo256(cell.bg[0], cell.bg[1], cell.bg[2])}m`
     let fg = ''
     if (ch === '@') fg = '\x1b[32;1m'
     else if (ch === 'P') fg = '\x1b[33;1m'
     else if (ch === '!') fg = '\x1b[91;1m'
-    if (ch === '') fg = '\x1b[97m'
-    out += bg + fg + (ch || ' ') + '\x1b[0m'
+    out += bg + fg + ch + '\x1b[0m'
   }
   return out + '\x1b[0m'
 }
