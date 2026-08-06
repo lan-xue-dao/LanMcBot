@@ -81,4 +81,4 @@ lib/
 - TUI 顶部三栏 HUD：左状态 / 中 11×11 小地图 / 右感知通知；地图用 **256 色背景**（`48;5`，conhost 不支持 truecolor `48;2`）；PgUp/PgDn 滚动历史；SGR 鼠标序列已过滤；鼠标协议（?1000h/?1006h）曾引发输入错乱已回退，勿轻易重开
 - 小地图照搬 **MCC（Minecraft Console Client）** 算法（lib/minimap.mjs）：每个终端格 = `▀` 半块 + fg/bg 双色（纵向 2 像素/格，22 像素高）；配色用官方 MapColor 表 `lib/data/minimap_block_colors.json`（MCC 仓库生成，PascalCase 键 → snake_case 匹配 mineflayer 方块名，`grass_block` 等键形如 `GrassBlock`）；地表模式从 `playerY+32` 往下扫首个非透明方块（非全高度），水面按深度混蓝（≤0.85）、冰叠色、玻璃/空气穿透；按**北邻高度差**做 220/255/180 浮雕明暗；洞穴模式（下界或头顶 32 格内有实心方块自动开启）从玩家 Y 找洞穴地板并压暗 0.55、非洞穴像素描边 16,16,16；实体按类别涂色（敌对红/被动绿/中立橙/玩家白）、深度 >5 渐淡 >15 不显示、同格高优先级覆盖；`lib/data/minimap_entity_categories.json` 实体分类同源
 - 小地图数据 JSON 是 UTF-8 **带 BOM**（PowerShell Out-File 生成），`loadJson` 里已剥 BOM；如重新生成数据文件注意这一点
-- **`bot.blockAt` 只接受带 `x/y/z` 的对象**（`{x,y,z}` 或 Vec3）；传三个数字会静默返回 null 不报错（黑屏类问题先查这个）——全库其他调用点都用 `vec3()`/`pos.offset()`，勿用三参数形式
+- **`bot.blockAt` 只接受真 Vec3 实例**（prismarine-world 会调 `pos.floored()`）：传纯 `{x,y,z}` 对象会抛 `TypeError: pos.floored is not a function`，传三个数字会静默返回 null——全库调用点（lib/minimap.mjs、lib/nav/world.mjs、lib/bot.mjs、perception/*）统一用 `vec3(...)` 或 `pos.offset()`，勿用三参数/裸对象形式
