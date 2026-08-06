@@ -157,7 +157,7 @@ function render() {
     }
     const leftText = statusLines[i - 1] || ''
     const rightText = notifications[i - 1] || ''
-    const mapRow = mapLines ? buildMapLine(mapLines[i - 1]) : null
+    const mapRow = mapLines ? buildMapRow(mapLines[i - 1]) : null
     const mid = mapRow || pad('', MAP_W)
     lines.push(
       leftC + pad(truncate(leftText, leftW), leftW) + reset +
