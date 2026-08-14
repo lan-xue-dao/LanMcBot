@@ -5,11 +5,17 @@
   "license": "ISC",
   "type": "commonjs",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "start": "node index.js",
     "mcp": "node mcp-server.mjs",
     "mcp:sse": "node mcp-server.mjs --transport=sse",
-    "mcp:stdio": "node mcp-server.mjs --transport=stdio"
+    "mcp:stdio": "node mcp-server.mjs --transport=stdio",
+    "verify": "node --check index.js && node --check lib/**/*.mjs",
+    "lint": "eslint . --ext .mjs",
+    "test": "mocha tests/**/*.test.mjs",
+    "test:watch": "mocha tests/**/*.test.mjs --watch",
+    "test:coverage": "nyc npm test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

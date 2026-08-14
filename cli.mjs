@@ -1,6 +1,6 @@
 import readline from 'readline'
 import * as bot from './lib/bot.mjs'
-import { logRaw } from './lib/logger.mjs'
+import { logRaw, chatLog } from './lib/logger.mjs'
 import { handleCommand } from './lib/commands.mjs'
 import { startPassivePerception, stopPassivePerception } from './lib/perception/index.mjs'
 import { translateEntity, translateMessage } from './lib/i18n.mjs'
@@ -63,9 +63,16 @@ bot.createBot((event, data) => {
       })
       break
     case 'chat':
+      // 玩家聊天：控制台展示 + 写入聊天记录
+      addMessage(chatLog(`${data.username}: ${data.message}`))
+      break
+    case 'bot_chat':
+      // 本 bot 发出/执行的聊天命令
+      addMessage(chatLog(`我: ${data.text}`))
       break
     case 'messagestr':
       addMessage(logRaw('[消息] ' + translateMessage(data.msg)))
+      chatLog(translateMessage(data.msg))
       break
     case 'auto_login':
       addMessage(logRaw('已自动登录'))
