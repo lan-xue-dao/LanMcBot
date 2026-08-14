@@ -49,19 +49,32 @@ if (!password) {
 }
 
 // 加密密码
-const key = crypto.createHash('sha256').update(secretKey).digest() // 32 字节
+// secretKey 本身就是 32 字节，直接作为 AES-256 密钥（不再派生，避免两端不一致）
+// IV 独立随机生成 16 字节，与密文一起存储：<iv-hex>:<ciphertext-hex>
+// 全程用 hex 文本存储，绝不把二进制 Buffer 以 'utf8' 写文件（会被替换成 U+FFFD 而损坏）
+const iv = crypto.randomBytes(16)
+const cipher = crypto.createCipheriv('aes-256-cbc', secretKey, iv)
+const encrypted = Buffer.concat([cipher.update(password, 'utf8'), cipher.final()])
+const payload = `${iv.toString('hex')}:${encrypted.toString('hex')}`
 
-// 使用前 16 字节作为 IV（初始化向量）
-const iv = key.slice(0, 16)
-const cipherKey = key.slice(16)
-
-const cipher = crypto.createCipheriv('aes-256-cbc', cipherKey, iv)
-let encrypted = cipher.update(password, 'utf8')
-encrypted = Buffer.concat([encrypted, cipher.final()])
-
-// 写入加密文件
-fs.writeFileSync(PASSWORD_FILE, encrypted, 'utf8')
+// 写入加密文件（纯 hex 文本，安全）
+fs.writeFileSync(PASSWORD_FILE, payload, 'utf8')
 console.log('✓ 已加密密码并保存到 password.enc')
+
+// 立即自检：用同样的密钥解回来，确认端到端可用
+{
+  const [ivHex, ctHex] = fs.readFileSync(PASSWORD_FILE, 'utf8').trim().split(':')
+  const decipher = crypto.createDecipheriv('aes-256-cbc', secretKey, Buffer.from(ivHex, 'hex'))
+  const roundTrip = Buffer.concat([
+    decipher.update(Buffer.from(ctHex, 'hex')),
+    decipher.final()
+  ]).toString('utf8')
+  if (roundTrip !== password) {
+    console.error('✗ 自检失败：解密结果与原密码不一致，已中止')
+    process.exit(1)
+  }
+  console.log('✓ 加解密自检通过')
+}
 
 // 步骤 3: 创建 .env 文件
 console.log('\n步骤 3: 创建 .env 文件')
@@ -78,10 +91,11 @@ MCBOT_USERNAME=${process.env.MCBOT_USERNAME || 'LanBot'}
 # MCBOT_AUTH 认证方式 (offline/microsoft/xbox)
 MCBOT_AUTH=${process.env.MCBOT_AUTH || 'offline'}
 
-# MCBOT_PASSWORD 机器人密码
-MCBOT_PASSWORD=${process.env.MCBOT_PASSWORD || password}
+# MCBOT_PASSWORD 明文密码（留空，密码已加密存于 password.enc）
+# 仅在临时调试时才填写，填写后会覆盖加密文件
+MCBOT_PASSWORD=
 
-# MCBOT_PASSWORD_KEY 加密密钥 (用于加密配置文件)
+# MCBOT_PASSWORD_KEY 解密 password.enc 所需的 32 字节密钥（64 位 hex）
 MCBOT_PASSWORD_KEY=${secretKey.toString('hex')}
 
 # MCBOT_UI UI 模式 (cli/tui)
@@ -103,11 +117,13 @@ MCBOT_USERNAME=YourUsername
 
 # 认证配置
 MCBOT_AUTH=offline
-MCBOT_PASSWORD=YourPassword
 
-# 安全密钥 (必须与 password.enc 对应)
-# 可以通过以下命令生成新的随机密钥:
-# node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# 密码二选一：
+#   1) 明文（优先级最高，适合临时调试）
+MCBOT_PASSWORD=
+#   2) 加密：运行 node setup-security.mjs 生成 password.enc + 下面这个密钥
+#      密钥必须是 32 字节（64 位 hex）
+MCBOT_PASSWORD_KEY=
 
 # UI 模式 (cli | tui)
 MCBOT_UI=cli
@@ -147,30 +163,14 @@ if (newEntries.length > 0) {
 
 // 步骤 6: 使用新配置加载
 console.log('\n步骤 6: 使用新配置验证')
-try {
-  // 动态加载新配置
-  delete require.cache[require.resolve('./config.mjs')]
-  const config = require('./config.mjs')
-
-  console.log('✓ 配置加载成功')
-  console.log('  Host:', config.host)
-  console.log('  Port:', config.port)
-  console.log('  Username:', config.username)
-  console.log('  Auth:', config.auth)
-  console.log('  UI:', config.ui)
-
-  // 安全提示
-  console.log('\n⚠️  安全提示:')
-  console.log('  1. password.enc 已添加到 .gitignore，不会被提交到 Git')
-  console.log('  2. .env 文件也已添加到 .gitignore')
-  console.log('  3. 请妥善保管 MCBOT_PASSWORD_KEY 和 MCBOT_PASSWORD')
-  console.log('  4. 在生产环境中，建议使用环境变量传递密码')
-  console.log('\n✨ 安全初始化完成！')
-  console.log('\n运行命令:')
-  console.log('  npm start')
-  console.log('  或')
-  console.log('  node index.js')
-} catch (err) {
-  console.error('❌ 配置加载失败:', err.message)
-  process.exit(1)
-}
+console.log('✓ 配置文件已创建，请手动运行 node index.js 测试')
+console.log('\n⚠️  注意：')
+console.log('  1. password.enc 已添加到 .gitignore，不会被提交到 Git')
+console.log('  2. .env 文件也已添加到 .gitignore')
+console.log('  3. 请妥善保管密钥文件')
+console.log('  4. 在生产环境中，建议使用环境变量传递密码')
+console.log('\n✨ 安全初始化完成！')
+console.log('\n运行命令:')
+console.log('  npm start')
+console.log('  或')
+console.log('  node index.js')
