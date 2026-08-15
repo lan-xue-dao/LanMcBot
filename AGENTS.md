@@ -18,35 +18,36 @@ node setup-security.mjs  # 安全初始化（可选，密码加密）
 
 ### 环境变量配置（推荐）
 
-使用 `.env` 文件或环境变量配置（覆盖 `config.json`）：
+`.env` 文件或真实环境变量，覆盖 `config.json`：
 
 ```bash
-# 服务器配置
 MCBOT_HOST=your-server.com
 MCBOT_PORT=25565
 MCBOT_USERNAME=LanBot
-
-# 认证配置
 MCBOT_AUTH=offline
-MCBOT_PASSWORD=your-password
-
-# 安全密钥（用于加密 password.enc）
-MCBOT_PASSWORD_KEY=your-32-byte-hex-key
-
-# UI 模式
-MCBOT_UI=cli  # 或 tui
+MCBOT_PASSWORD=            # 留空！填了会盖掉加密文件
+MCBOT_PASSWORD_KEY=<64位hex>  # 解密 password.enc 用
+MCBOT_UI=cli               # 或 tui
 ```
 
 ### 配置文件
 
-- `.env` - 环境变量配置（建议使用，**不提交到 Git**）
-- `.env.example` - 配置示例（复制为 `.env` 修改使用）
-- `password.enc` - 加密的密码文件（**不提交到 Git**）
+- `.env` — 环境变量配置（**不提交**）
+- `.env.example` — 配置示例
+- `password.enc` — 加密密码（**不提交**）
 
-**安全性**：
-- 密码支持环境变量或加密文件
-- 优先级：环境变量 > 加密文件 > `config.json`（向后兼容）
-- `.gitignore` 已配置，敏感文件不会被提交
+**密码优先级**：`MCBOT_PASSWORD`（明文）> `password.enc`（解密）> `config.json`（已删该字段，仅兼容）
+
+- `config.mjs` **自带极简 .env 解析器**（不依赖 dotenv）：只认 `KEY=VALUE`，忽略空行与 `#` 注释，不做变量展开；真实环境变量优先于 `.env`
+- `.env` 的 `MCBOT_PASSWORD` **必须留空**，否则明文覆盖加密文件，加密形同虚设
+- `config.json` 已移除 `password` 字段，**勿加回**
+
+**加密约定（两侧必须一致，勿单改）**：
+- `password.enc` 格式 `<iv-hex>:<ciphertext-hex>`，**纯 hex 文本**
+- `MCBOT_PASSWORD_KEY` 为 32 字节（64 位 hex），**直接作 AES-256-CBC 密钥，不再 SHA 派生**
+- IV 独立随机 16 字节，与密文同存（勿从密钥切片取 IV）
+- `setup-security.mjs` 加密后**立即自检**解回比对，不符即 `exit(1)`
+- 换机器需重跑 `node setup-security.mjs`；密钥丢失只能重新初始化
 
 ## 项目结构 / Structure
 
@@ -68,15 +69,21 @@ lib/
     world.mjs      #   世界采样/方块分类（名字驱动）/groundAt 列扫描
                      #   自动缓存清理（1分钟）防止内存泄漏
     index.mjs      #   出口 initNav(bot,onEvent) → {goto,stop,isMoving,destroy}
-    line.mjs / detour.mjs / smooth.mjs  # 遗留：预规划时代，已不引用（待删）
+    line.mjs / detour.mjs / smooth.mjs  # 遗留：预规划时代，已不引用（待删，
+                     #   但 index.mjs 仍 re-export 它们，删前先摘掉导出）
   perception/
     index.mjs           # 感知统一导出（scan + monitor + environment）
     active/scan.mjs     # 主动感知（命令触发，16×16×16，radius 8）
     passive/monitor.mjs # 被动监听（受伤/攻击/实体接近，过滤物品实体）
-index.d.ts             # TypeScript 类型定义（IDE 自动补全支持）
-tests/                 # 测试套件
-  utils.test.mjs       # 单元测试（29 个测试用例）
+index.d.ts             # TypeScript 类型定义（IDE 自动补全支持，package.json 已声明 types）
+setup-security.mjs     # 密码加密初始化（生成密钥 + password.enc + .env，含自检）
+tests/
+  utils.test.mjs       # 单元测试（需 mocha，当前未装，跑不起来）
 ```
+
+### 文档产物
+
+`CODE_REVIEW.md`（评审 6.1/10）、`FIXES.md`（分阶段修复计划）、`REVIEW_SUMMARY.md`、`FIXES_APPLIED.md`、`NAV_FIXES.md` 均为历史评审/修复记录，非运行所需。
 
 ## 命令 / Commands
 
@@ -85,12 +92,14 @@ tests/                 # 测试套件
 - 移动：`!f/前` `!b/后` `!l/左` `!r/右` `!jump` `!sneak` `!stop` `!move <x> <y> <z>`（寻路）
 - 动作：`!attack` `!use` `!sleep` `!wake`
 - 感知：`!scan` `!players` `!entities` `!blocks` `!find <方块名>`（支持中文名）`!danger`
-- 背包：`!inv` `!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位，返回 Promise）
+- 背包：`!inv` `!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位）
 - 系统：`!help` `!exit/!quit` `!restart` `!connect` `!reconnect` `!mcp` `!mcp-stdio` `!mcp-sse`
 
-**注意**：
-- `!place` 现在返回 Promise，支持 `await` 或 `.then/.catch`
-- `!sleep` 现在返回 Promise，支持 `await` 或 `.then/.catch`
+**⚠️ 已知未修复缺陷**：`bot.placeBlock()` 与 `bot.sleep()` 已改为返回 Promise，但 `commands.mjs` 的调用点仍按同步值判断：
+- `commands.mjs:245` `const result = bot.placeBlock(...)` 后判 `!result.ok` —— Promise 无 `ok` 属性，恒为真 → **总是误报「无法放置」**
+- `commands.mjs:351` `const result = bot.sleep()` 后比对 `'sleeping'`/`'no_bed'`/`'already_sleeping'` 字符串 —— 恒不匹配 → **总是误报「未连接」**
+- 且 `placeBlock` 失败走 `Promise.reject`，无 `.catch` 会产生 unhandled rejection
+- 修法：`handleCommand` 改 `async`，两处 `await` + `try/catch`，或挂 `.then/.catch` 回填 `addMessage`
 
 ### 聊天指令（唤醒词触发）
 
@@ -128,18 +137,47 @@ tests/                 # 测试套件
 
 **注意**：切换传输模式时需要重启 MCP 服务器。
 
+**实现要点**：`globalBot` / `globalNav` / `mcpStarted` 为模块级单例，`ensureBot()` 懒创建并把事件打到 `console.error`（stdio 模式下 stdout 归协议专用，**日志绝不能写 stdout**）。`send_chat`/`connect` 用 `ensureBot()`；`get_status`/`get_players`/`get_position`/`get_inventory` 用 `getBot()`，未连接返回 `isError: true`；`disconnect` 仅在 `globalBot` 存在时调 `destroyBot()`。
+
 ## 导航引擎 / Nav
 
 **先规划、后执行**：`goto` 立即调 `planRoute`（plan.mjs）——先试直线 DDA，被挡则 A* 演化出「途径无障碍且最短」的路点队列 `{x,y,z,action}`；controller 逐路点直行。**路线途中失效（当前路点不可走/视线前方新障碍）→ 障碍前停下重算**，循环直到到达或总超时 600s。
 
 - **walkable**（plan.mjs 与 controller 共用判定）：高度差 `[-4, +1.2]` 走/落/跳；悬空（脚下格无 standable）不判障碍交给重力
 - **穿透方块**（`isPenetrableName`，world.mjs）：木门、活板门、压力板、按钮、告示牌不挡身体；铁门算墙
-- **门**：关着的门 `action:'open'` — controller 在 `horiz<1.2`（不必到格心）就停下 `activateBlock` 开门，等 `_properties.open` 变 true 后 `doorpass` 偏移 0.2-0.5 格穿过；开着的门 `action:'door'` 同样偏移穿过。`doorOpen()` 读 `world.getCell(x,y,z).open`
+- **门**：关着的门 `action:'open'` — controller 在 `horiz<1.2`（不必到格心）就停下 `activateBlock` 开门，等 `_properties.open` 变 true 后 `doorpass` 偏移 0.2-0.5 格穿过；开着的门 `action:'door'` 同样偏移穿过。`doorOpen()` 读 `world.getCell(x,y,z).open`。开门最多重试 `OPEN_MAX_ATTEMPTS=3` 次，超限才重算路径（避免门打不开时死等）
 - **地面站立的坑**：`groundAt` 排除门的顶面（门 standable=false），否则会「从门顶跳过去」；开着的活挡门也不可站
-- **二次 goto**：必须完整重置 `waitingOpen/mode/passSide/passUntil/replanAt` + `clearControls()`，否则旧门的等待/穿门状态与新目标互搏
+- **`groundAt` 是双向扫描**：先向上找 1 格（处理悬空上方有站立面），再向下扫到 `toY`
+- **二次 goto**：必须完整重置 `waitingOpen/mode/passSide/passUntil/replanAt/openAttemptCount` + `clearControls()`，否则旧门的等待/穿门状态与新目标互搏
 - **到达判据**：xz 距路点格心 ≤0.6 且 y 差 ≤1.2；路点最后一个 = 终点
+- **卡住检测用 3D 距离**（含 y）：3s 内移动 <0.3 格才算卡住；穿门卡→换侧，直行卡→点跳（≤3 次），再卡→重算
 - **寻路事件**（兼容旧 pathfinder）：`move_started` / `path_update{status}`（同状态去重）/ `path_failed{status}` / `goal_reached`
 - **A* 坑**：`open` 集节点必须自带 `g`（曾从外部 `gScore` 读导致 f=NaN 选不出节点），勿回归
+
+### A* 代价权重（plan.mjs）
+
+| 常量 | 值 | 含义 |
+|---|---|---|
+| `STEP_COST` | 1 | 直行一格 |
+| `DIAG_COST` | 1.414 | 斜行一格 |
+| `RISE_COST` | 0.8 | 每上升 1 格额外代价 |
+| `OPEN_COST` | 1.0 | 经过需开门的格子 |
+
+权衡意图：**优先开门 > 绕路 > 爬楼梯**。曾设 `OPEN_COST=2` / `RISE_COST=0.5`，导致开门比爬楼梯还贵、规划器宁愿绕远路，已调反。
+
+### 已知待优化项（未修）
+
+- **`open` 集取最小 f 是线性扫描**（`plan.mjs` 的 `for (const [k, node] of open)`），整体 O(n²)；换二叉堆可到 O(n log n)，行为不变、零风险
+- **已入 `open` 的节点无法改进 `g`**：`if (closed.has(nk) || open.has(nk)) continue` 直接跳过，缺 decrease-key。因边权不均匀（`RISE_COST` 随高度差、`OPEN_COST` 仅对门），**会产出次优路径**
+- `key = (x,z) => x*65536 + z` 在 |坐标差| ≥65536 时会碰撞；当前受 `maxRange=48` 保护，安全但脆
+
+### 关于替换为第三方引擎
+
+调研过 `@miner-org/mineflayer-baritone`（4.5.1，ISC，peer mineflayer ^4.35.0，与本项目兼容）。它有 parkour / 挖放方块 / 游泳 / 爬梯，但 **README 完全未提门交互**，且自述 parkour 复杂序列会卡、出水需多次尝试。**门逻辑是本项目的硬约束**，直接替换会丢失。结论：如要引入，应作为**可选后端**并行（`initNav(bot, onEvent, backend)` + `MCBOT_NAV` 切换），而非替换自研实现。
+
+`baritone-ts` 在 npm 上不存在（404）。
+
+`package.json` 仍留着 `mineflayer-pathfinder ^2.4.5` 死依赖（nav 已完全替代），可删。
 
 ## 日志 / Logs
 
@@ -150,15 +188,24 @@ tests/                 # 测试套件
 
 ## 验证 / Verify
 
-- 无测试套件：改动后 `node --check <file>`
-- `plan.mjs`/`world.mjs` 可用临时脚本 + 假世界（`{name,shapes,_properties}`）纯逻辑验证 `walkable`/`planRoute`；**Windows 上 node 默认堆易 OOM，用 `node --max-old-space-space=1024` 或 `--max-old-space-size=768`**
+- 改动后 `node --check <file>`（最低要求）
+- `npm run verify` = `node --check index.js && node --check lib/**/*.mjs`
+- `tests/utils.test.mjs` 存在但 **`npm test` 需要 mocha，当前未安装**（`devDependencies` 为空），实际跑不起来
+- `plan.mjs`/`world.mjs` 可用临时脚本 + 假世界（`{name,shapes,_properties}`）纯逻辑验证 `walkable`/`planRoute`；**Windows 上 node 默认堆易 OOM，用 `--max-old-space-size=768` 或 `1024`**
+- 配置/加密改动：`node setup-security.mjs` 自带自检；另可 `node -e "import('./lib/config.mjs').then(m=>console.log(m.default.password.length))"` 确认密码解出
 - 实机功能需连真实服务器验证
+- **临时验证脚本用完即删**（曾遗留 `test-encrypt.mjs`/`test-config.mjs`/`restart-child-marker.txt`）
 
 ## 平台 / Platform
 
 - `package.json` 是 `"type": "commonjs"`，界面/库文件用 `.mjs` ESM，`index.js` 动态 `import()`；新增文件注意扩展名
+- `.mjs` 里**没有 `require`**：需要时用 `createRequire(import.meta.url)`（`lib/config.mjs` 读 `config.json` 即如此），或改 `import()`
+- **Node v24 无 `crypto.createCipher`/`createDecipher`**（已移除），只能用 `createCipheriv`/`createDecipheriv`
+- **二进制 Buffer 绝不能以 `'utf8'` 写文件**：`writeFileSync(f, buf, 'utf8')` 会把非法字节替换成 U+FFFD 而永久损坏数据（曾致密文解不开）。密文一律转 hex/base64 文本再写
 - **`bot.blockAt` 只接受真 Vec3 实例**（内部调 `pos.floored()`）：纯对象抛 TypeError、传三个数字静默返回 null —— 全库统一 `vec3(...)` 或 `pos.offset()`，勿用三参数/裸对象
 - Windows 中文乱码：`chcp 65001`
+- PowerShell 下 **`git commit -m "$(cat <<'EOF' ...)"` 这类 heredoc 不可用**（`<<` 被当重定向符），多行提交信息改用 `-F` 读文件或单行
+- npm 全局缓存曾因权限报 `EPERM`（`C:\Users\...\npm-cache`），可临时 `--cache <工作区目录>` 绕过，**用完删掉临时缓存目录**
 - TUI 顶部三栏 HUD：左状态 / 中 22×11 小地图（每格 `▀` 纵向 2 像素，横向 1 格=1 方块）/ 右感知通知；地图用 256 色背景（`48;5`，conhost 不支持 truecolor `48;2`）；鼠标协议（?1000h）曾引发输入错乱已回退，勿重开
 - 自动重连：断开 5s 重试（最多 3 次）；重连后 3s 自动补发 `/server <原服务器>` 回服；`messagestr` 检测 login/register 时自动用 `config.password`
 - 小地图数据 JSON 是 UTF-8 **带 BOM**（PowerShell Out-File 生成），`loadJson` 已剥 BOM；重新生成数据注意
@@ -166,6 +213,10 @@ tests/                 # 测试套件
 
 ## 修复记录（重要）
 
-- **restart 只退出不重启**：曾经 spawn 后立即 `exit()`，子进程句柄易夭折。改为 spawn（`process.execPath`+`argv.slice(1)`，`detached/inherit`）+ 等 `spawn` 事件 + 250ms 延迟再 `exit()`（commands.mjs）
+- **restart 只退出不重启**：曾经 spawn 后立即 `exit()`，子进程句柄易夭折。改为 spawn（`process.execPath`+`argv.slice(1)`，`detached/inherit/windowsHide`）+ 等 `spawn` 事件 + **1000ms** 延迟再 `exit()`，并加 `spawnSuccess` 标志（`error` 仅在未 spawn 时报错）与 5000ms 超时兜底（commands.mjs）
 - **门被当墙**：早期 controller 只在到达门格中心（0.6）才开门，门体堵死永远到不了中心 → 改为 `horiz<1.2` 提前开门
 - **模拟器（测试假 bot）**：`jump` 需在位移之后再减重力，否则每次跳跃被吞；跳高初始 `vel.y=1.4` 才能过 1 格台阶
+- **AES 密钥长度 + 密文损坏（两个叠加 bug）**：`aes-256-cbc` 需 32 字节密钥，但曾把 SHA-256 结果切成 `slice(0,16)` 作 IV、`slice(16)` 作密钥 → 密钥仅 16 字节，报 `ERR_CRYPTO_INVALID_KEYLEN`；改用完整 32 字节后又因密文以 `'utf8'` 落盘被 U+FFFD 污染，报 `ERR_OSSL_BAD_DECRYPT`。最终方案见「加密约定」
+- **MCP 每次工具调用都新建 bot**：改为模块级 `globalBot` + `ensureBot()` 单例，`SIGINT`/`SIGTERM` 走 `mcpShutdown()`；未连接的查询类工具返回 `isError: true`
+- **nav world 缓存无界增长**：`createWorld(blockAtFn, minY, worldSize=96)` 每 60s `cleanupCache()`，删除 `Math.hypot(cx,cz) > worldSize/2` 的键；`clearCache()` 同时清定时器；新增 `getCacheSize()`
+- **`quitBot()` 现在返回 Promise**（轮询 100ms 等 `bot`/`bot._client` 消失）：`destroyBot()` 与 `reconnect()` 仍同步调用且自行置 null，**尚未 await，需确认无竞态**
