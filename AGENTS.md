@@ -95,11 +95,9 @@ tests/
 - 背包：`!inv` `!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位）
 - 系统：`!help` `!exit/!quit` `!restart` `!connect` `!reconnect` `!mcp` `!mcp-stdio` `!mcp-sse`
 
-**⚠️ 已知未修复缺陷**：`bot.placeBlock()` 与 `bot.sleep()` 已改为返回 Promise，但 `commands.mjs` 的调用点仍按同步值判断：
-- `commands.mjs:245` `const result = bot.placeBlock(...)` 后判 `!result.ok` —— Promise 无 `ok` 属性，恒为真 → **总是误报「无法放置」**
-- `commands.mjs:351` `const result = bot.sleep()` 后比对 `'sleeping'`/`'no_bed'`/`'already_sleeping'` 字符串 —— 恒不匹配 → **总是误报「未连接」**
-- 且 `placeBlock` 失败走 `Promise.reject`，无 `.catch` 会产生 unhandled rejection
-- 修法：`handleCommand` 改 `async`，两处 `await` + `try/catch`，或挂 `.then/.catch` 回填 `addMessage`
+**已修复（Promise 调用点）**：`bot.placeBlock()` 与 `bot.sleep()` 返回 Promise，调用点一律 `.then/.catch` 回填消息，勿再按同步值判断（`!result.ok` 恒真、`result === 'sleeping'` 恒假）。`handleCommand` 保持同步返回 boolean，因 cli/tui 的 `if (!handled)` 依赖它 fallback 到聊天。
+- 修过的 4 处：`commands.mjs` 的 `!place`/`!sleep`，`bot.mjs` 聊天指令的 `place`/`sleep`
+- `bot.sleep()` 未连接分支返回 `Promise.reject(new Error('未连接'))`（曾是 `return false`，`.catch` 会 TypeError）
 
 ### 聊天指令（唤醒词触发）
 
