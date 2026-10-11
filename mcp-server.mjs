@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget } from './lib/bot.mjs'
 
 let globalBot = null
 let globalNav = null
@@ -73,6 +73,40 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'get_inventory',
       description: '获取机器人背包物品',
+      inputSchema: { type: 'object', properties: {} }
+    },
+    {
+      name: 'get_recipes',
+      description: '查询某物品的合成配方与材料缺口',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          item: { type: 'string', description: '物品名（中/英文）' },
+          count: { type: 'number', description: '期望合成数量，默认 1' }
+        },
+        required: ['item']
+      }
+    },
+    {
+      name: 'craft_item',
+      description: '合成物品（自动匹配配方与材料检查，需材料在背包）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          item: { type: 'string', description: '物品名（中/英文）' },
+          count: { type: 'number', description: '合成数量，默认 1' }
+        },
+        required: ['item']
+      }
+    },
+    {
+      name: 'equip_gear',
+      description: '自动装备背包中最佳的武器与护甲',
+      inputSchema: { type: 'object', properties: {} }
+    },
+    {
+      name: 'attack_nearest',
+      description: '攻击最近的敌对生物（单次）',
       inputSchema: { type: 'object', properties: {} }
     },
     {
@@ -149,6 +183,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           slot: i.slot
         }))
         return { content: [{ type: 'text', text: JSON.stringify(items, null, 2) }] }
+      }
+
+      case 'get_recipes': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = getRecipes(args.item, args.count || 1)
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'craft_item': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await craftItem(args.item, args.count || 1)
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'equip_gear': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await equipBestGear()
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'attack_nearest': {
+        const b = getBot()
+        if (!b) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = attackTarget()
+        if (!r) return { content: [{ type: 'text', text: '附近没有敌对生物' }], isError: true }
+        return { content: [{ type: 'text', text: `已攻击: ${r}` }] }
       }
 
       case 'connect': {
