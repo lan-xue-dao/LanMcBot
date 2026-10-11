@@ -58,6 +58,7 @@ tui.mjs            # 全屏 TUI 模式（自研 ANSI 重绘，非 ink）
 mcp-server.mjs     # MCP 服务器（全局单例实例）
 lib/
   bot.mjs          # 核心：连接/重连/寻路/聊天指令（sendChat 统一出口，emit bot_chat）
+  lifecycle.mjs    #   可单测纯逻辑：自动重生(createDeathHandler) + 重连判定(shouldReconnect)
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
   minimap.mjs      # 小地图（MCC 算法）
