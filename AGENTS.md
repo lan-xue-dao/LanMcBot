@@ -59,6 +59,8 @@ mcp-server.mjs     # MCP 服务器（全局单例实例）
 lib/
   bot.mjs          # 核心：连接/重连/寻路/聊天指令（sendChat 统一出口，emit bot_chat）
   lifecycle.mjs    #   可单测纯逻辑：自动重生(createDeathHandler) + 重连判定(shouldReconnect)
+  combat.mjs       #   战斗（P0-2）：可单测纯逻辑 + 注入式 controller；不引第三方 pvp（硬绑已删 pathfinder）
+  entities.mjs     #   实体分类单一数据源：统一敌对生物表 HOSTILE_MOBS + isHostile()
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
   minimap.mjs      # 小地图（MCC 算法）
@@ -91,6 +93,7 @@ tests/
 
 - 移动：`!f/前` `!b/后` `!l/左` `!r/右` `!jump` `!sneak` `!stop` `!move <x> <y> <z>`（寻路）
 - 动作：`!attack` `!use` `!sleep` `!wake`
+- 战斗：`!combat`（开启自动战斗：持续攻击 + 受击反击 + 低血量撤退）`!combat-off`（关闭）
 - 感知：`!scan` `!players` `!entities` `!blocks` `!find <方块名>`（支持中文名）`!danger`
 - 背包：`!inv` `!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位）
 - 系统：`!help` `!exit/!quit` `!restart` `!connect` `!reconnect` `!mcp` `!mcp-stdio` `!mcp-sse`

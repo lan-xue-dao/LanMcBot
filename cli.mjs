@@ -114,6 +114,18 @@ bot.createBot((event, data) => {
     case 'place_failed':
       addMessage(logRaw(`⚠ 放置失败: ${data.err}`))
       break
+    case 'combat_started':
+      addMessage(logRaw('⚔ 自动战斗已开启'))
+      break
+    case 'combat_stopped':
+      addMessage(logRaw('⚔ 自动战斗已关闭'))
+      break
+    case 'combat_attack':
+      addMessage(logRaw(`⚔ 攻击 ${data.name} (${data.distance}m)`))
+      break
+    case 'combat_retreat':
+      addMessage(logRaw(`🏃 低血量撤退 (${translateEntity(data.name)}) 生命: ${data.health}`))
+      break
   }
 })
 
