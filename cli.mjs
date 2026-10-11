@@ -126,6 +126,15 @@ bot.createBot((event, data) => {
     case 'combat_retreat':
       addMessage(logRaw(`🏃 低血量撤退 (${translateEntity(data.name)}) 生命: ${data.health}`))
       break
+    case 'ate':
+      addMessage(logRaw(`🍔 进食 ${translateBlock(data.name)}`))
+      break
+    case 'eat_no_food':
+      addMessage(logRaw('⚠ 背包里没有可吃的食物'))
+      break
+    case 'eat_failed':
+      addMessage(logRaw(`⚠ 进食失败: ${data.reason}`))
+      break
   }
 })
 

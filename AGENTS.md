@@ -62,6 +62,7 @@ lib/
   combat.mjs       #   战斗（P0-2）：可单测纯逻辑 + 注入式 controller；不引第三方 pvp（硬绑已删 pathfinder）
   entities.mjs     #   实体分类单一数据源：统一敌对生物表 HOSTILE_MOBS + isHostile()
   craft.mjs        #   合成（P0-4）：零依赖纯逻辑（canCraft/ingredientsNeeded/matchCraftableByName）
+  survival.mjs     #   自动进食（P0-4）：食物表/选食纯逻辑 + 注入式 controller（副手进食，默认开启）
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
   minimap.mjs      # 小地图（MCC 算法）
@@ -98,6 +99,7 @@ tests/
 - 感知：`!scan` `!players` `!entities` `!blocks` `!find <方块名>`（支持中文名）`!danger`
 - 背包：`!inv` `!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位）
 - 合成：`!recipes <物品>`（查配方与缺口）`!craft <物品> [数量]`（合成）`!gear`（自动装备最佳武器/护甲）
+- 生存：`!eat`（开启自动进食，默认开启）`!eat-off`（关闭）
 - 系统：`!help` `!exit/!quit` `!restart` `!connect` `!reconnect` `!mcp` `!mcp-stdio` `!mcp-sse`
 
 **已修复（Promise 调用点）**：`bot.placeBlock()` 与 `bot.sleep()` 返回 Promise，调用点一律 `.then/.catch` 回填消息，勿再按同步值判断（`!result.ok` 恒真、`result === 'sleeping'` 恒假）。`handleCommand` 保持同步返回 boolean，因 cli/tui 的 `if (!handled)` 依赖它 fallback 到聊天。
