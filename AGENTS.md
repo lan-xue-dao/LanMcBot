@@ -69,16 +69,15 @@ lib/
     world.mjs      #   世界采样/方块分类（名字驱动）/groundAt 列扫描
                      #   自动缓存清理（1分钟）防止内存泄漏
     index.mjs      #   出口 initNav(bot,onEvent) → {goto,stop,isMoving,destroy}
-    line.mjs / detour.mjs / smooth.mjs  # 遗留：预规划时代，已不引用（待删，
-                     #   但 index.mjs 仍 re-export 它们，删前先摘掉导出）
+                     #   旧 line.mjs/detour.mjs/smooth.mjs 已删除（提交 34938af，无引用）
   perception/
-    index.mjs           # 感知统一导出（scan + monitor + environment）
+    index.mjs           # 感知统一导出（scan + monitor）
     active/scan.mjs     # 主动感知（命令触发，16×16×16，radius 8）
     passive/monitor.mjs # 被动监听（受伤/攻击/实体接近，过滤物品实体）
 index.d.ts             # TypeScript 类型定义（IDE 自动补全支持，package.json 已声明 types）
 setup-security.mjs     # 密码加密初始化（生成密钥 + password.enc + .env，含自检）
 tests/
-  utils.test.mjs       # 单元测试（需 mocha，当前未装，跑不起来）
+  utils.test.mjs       # 单元测试（mocha，已装进 devDependencies）
 ```
 
 ### 文档产物
@@ -165,9 +164,12 @@ tests/
 
 ### 已知待优化项（未修）
 
-- **`open` 集取最小 f 是线性扫描**（`plan.mjs` 的 `for (const [k, node] of open)`），整体 O(n²)；换二叉堆可到 O(n log n)，行为不变、零风险
-- **已入 `open` 的节点无法改进 `g`**：`if (closed.has(nk) || open.has(nk)) continue` 直接跳过，缺 decrease-key。因边权不均匀（`RISE_COST` 随高度差、`OPEN_COST` 仅对门），**会产出次优路径**
+- **已入 `open` 的节点无法改进 `g`**：`if (closed.has(nk) || openKeys.has(nk)) continue` 直接跳过，缺 decrease-key。因边权不均匀（`RISE_COST` 随高度差、`OPEN_COST` 仅对门），**会产出次优路径**
 - `key = (x,z) => x*65536 + z` 在 |坐标差| ≥65536 时会碰撞；当前受 `maxRange=48` 保护，安全但脆
+
+### 已优化项
+
+- **`open` 集取最小 f 已从线性扫描改为二叉堆**（`plan.mjs` 的 `MinHeap`，平局按入堆序 `seq` 比较，完全复刻旧 Map 先入优先语义）：整体由 O(n²) 降到 O(n log n)，路径产出行为不变（9 组对照测试全匹配）。`openKeys` Set 保留 `has` 判断。
 
 ### 关于替换为第三方引擎
 
@@ -175,7 +177,7 @@ tests/
 
 `baritone-ts` 在 npm 上不存在（404）。
 
-`package.json` 仍留着 `mineflayer-pathfinder ^2.4.5` 死依赖（nav 已完全替代），可删。
+`mineflayer-pathfinder ^2.4.5` 死依赖已在提交 `34938af` 删除（nav 已完全替代，无引用）。
 
 ## 日志 / Logs
 
@@ -188,7 +190,7 @@ tests/
 
 - 改动后 `node --check <file>`（最低要求）
 - `npm run verify` = `node --check index.js && node --check lib/**/*.mjs`
-- `tests/utils.test.mjs` 存在但 **`npm test` 需要 mocha，当前未安装**（`devDependencies` 为空），实际跑不起来
+- `tests/utils.test.mjs` 用 mocha，已装进 `devDependencies`；`npm test` 可正常跑
 - `plan.mjs`/`world.mjs` 可用临时脚本 + 假世界（`{name,shapes,_properties}`）纯逻辑验证 `walkable`/`planRoute`；**Windows 上 node 默认堆易 OOM，用 `--max-old-space-size=768` 或 `1024`**
 - 配置/加密改动：`node setup-security.mjs` 自带自检；另可 `node -e "import('./lib/config.mjs').then(m=>console.log(m.default.password.length))"` 确认密码解出
 - 实机功能需连真实服务器验证
@@ -217,4 +219,4 @@ tests/
 - **AES 密钥长度 + 密文损坏（两个叠加 bug）**：`aes-256-cbc` 需 32 字节密钥，但曾把 SHA-256 结果切成 `slice(0,16)` 作 IV、`slice(16)` 作密钥 → 密钥仅 16 字节，报 `ERR_CRYPTO_INVALID_KEYLEN`；改用完整 32 字节后又因密文以 `'utf8'` 落盘被 U+FFFD 污染，报 `ERR_OSSL_BAD_DECRYPT`。最终方案见「加密约定」
 - **MCP 每次工具调用都新建 bot**：改为模块级 `globalBot` + `ensureBot()` 单例，`SIGINT`/`SIGTERM` 走 `mcpShutdown()`；未连接的查询类工具返回 `isError: true`
 - **nav world 缓存无界增长**：`createWorld(blockAtFn, minY, worldSize=96)` 每 60s `cleanupCache()`，删除 `Math.hypot(cx,cz) > worldSize/2` 的键；`clearCache()` 同时清定时器；新增 `getCacheSize()`
-- **`quitBot()` 现在返回 Promise**（轮询 100ms 等 `bot`/`bot._client` 消失）：`destroyBot()` 与 `reconnect()` 仍同步调用且自行置 null，**尚未 await，需确认无竞态**
+- **`quitBot()` 已真正 await 断连**（提交 `d587864`）：内部 `await waitForDisconnect()`（轮询 100ms 等 `bot`/`bot._client` 消失，最多 3s）再置 null；`destroyBot()` 与 `reconnect()` 已改 `async` 并 `await quitBot()`，`reconnect` 先置 `intentionalQuit` 防旧 bot 的 `end` 事件误触发自动重连
