@@ -1,0 +1,5 @@
+{
+  "spec": "tests/**/*.test.mjs",
+  "recursive": true,
+  "exit": true
+}

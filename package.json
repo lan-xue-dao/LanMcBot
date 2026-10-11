@@ -13,13 +13,17 @@
     "mcp:stdio": "node mcp-server.mjs --transport=stdio",
     "verify": "node --check index.js && node --check lib/**/*.mjs",
     "lint": "eslint . --ext .mjs",
-    "test": "mocha tests/**/*.test.mjs",
-    "test:watch": "mocha tests/**/*.test.mjs --watch",
+    "test": "mocha",
+    "test:watch": "mocha --watch",
     "test:coverage": "nyc npm test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "mineflayer": "^4.37.1",
     "ws": "^8.21.2"
+  },
+  "devDependencies": {
+    "chai": "^5.3.3",
+    "mocha": "^10.8.2"
   }
 }

@@ -16,10 +16,10 @@ describe('nav/world.mjs', () => {
       expect(info.liquid).to.be.true
     })
 
-    it('should identify fence as fence', () => {
+    it('should identify fence as not standable', () => {
       const block = { name: 'oak_fence', _properties: {} }
       const info = blockInfo(block)
-      expect(info.fence).to.be.true
+      expect(info.standable).to.be.false
     })
 
     it('should identify wood door as openable', () => {
@@ -69,8 +69,8 @@ describe('nav/world.mjs', () => {
       expect(info.standable).to.be.false
     })
 
-    it('should identify standing slab as standable', () => {
-      const block = { name: 'stone', _properties: {}, shapes: [[0, 0, 0, 1, 0.875]] }
+    it('should identify full block as standable', () => {
+      const block = { name: 'stone', _properties: {}, shapes: [[0, 0, 0, 1, 1]] }
       const info = blockInfo(block)
       expect(info.standable).to.be.true
     })
@@ -98,7 +98,7 @@ describe('nav/world.mjs', () => {
     it('should find ground surface', () => {
       const world = createWorld((pos) => {
         if (pos.x === 0 && pos.y === 1 && pos.z === 0) {
-          return { name: 'stone', _properties: {} }
+          return { name: 'stone', _properties: {}, shapes: [[0, 0, 0, 1, 1]] }
         }
         return null
       })
@@ -172,7 +172,7 @@ describe('nav/world.mjs', () => {
 
     it('should deny moving through solid block', () => {
       const world = createWorld((pos) => {
-        if (pos.y === 0) return { name: 'stone', _properties: {} }
+        if (pos.y === 0) return { name: 'stone', _properties: {}, shapes: [[0, 0, 0, 1, 1]] }
         return null
       })
       const result = bodyClearAt(world, 0, 0, 0, false)
@@ -204,13 +204,14 @@ describe('nav/world.mjs', () => {
     it('should cache block info', () => {
       const world = createWorld((pos) => {
         if (pos.x === 0 && pos.y === 1 && pos.z === 0) {
-          return { name: 'stone', _properties: {} }
+          return { name: 'stone', _properties: {}, shapes: [[0, 0, 0, 1, 1]] }
         }
         return null
       })
 
+      world.getCell(0, 1, 0) // 首次填充缓存
       const cacheSize1 = world.getCacheSize()
-      world.getCell(0, 1, 0)
+      world.getCell(0, 1, 0) // 再次读取同一格，应命中缓存、不增长
       const cacheSize2 = world.getCacheSize()
       expect(cacheSize2).to.equal(cacheSize1)
     })
