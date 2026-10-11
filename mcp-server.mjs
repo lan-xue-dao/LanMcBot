@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, depositToChest, withdrawFromChest } from './lib/bot.mjs'
 
 let globalBot = null
 let globalNav = null
@@ -122,6 +122,28 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       }
     },
     {
+      name: 'chest_deposit',
+      description: '把背包物品存入最近的箱子/木桶',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          keep: { type: 'array', items: { type: 'string' }, description: '保留物品名列表（不存入）' }
+        }
+      }
+    },
+    {
+      name: 'chest_withdraw',
+      description: '从最近的箱子/木桶取出物品',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          item: { type: 'string', description: '物品名（中/英文）' },
+          count: { type: 'number', description: '数量，默认 1' }
+        },
+        required: ['item']
+      }
+    },
+    {
       name: 'connect',
       description: '连接到Minecraft服务器',
       inputSchema: { type: 'object', properties: {} }
@@ -226,6 +248,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'mine_block': {
         if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
         const r = await mineBlock(args.block, args.count || 1)
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'chest_deposit': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await depositToChest(args.keep || [])
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'chest_withdraw': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await withdrawFromChest(args.item, args.count || 1)
         return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
       }
 
