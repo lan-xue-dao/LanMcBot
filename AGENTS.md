@@ -63,6 +63,7 @@ lib/
   entities.mjs     #   实体分类单一数据源：统一敌对生物表 HOSTILE_MOBS + isHostile()
   craft.mjs        #   合成（P0-4）：零依赖纯逻辑（canCraft/ingredientsNeeded/matchCraftableByName）
   survival.mjs     #   自动进食（P0-4）：食物表/选食纯逻辑 + 注入式 controller（副手进食，默认开启）
+  mining.mjs       #   挖掘（P0-3）：选目标/选工具纯逻辑（pickMineTarget/pickBestTool/nextAction）
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
   minimap.mjs      # 小地图（MCC 算法）
@@ -97,6 +98,7 @@ tests/
 - 动作：`!attack` `!use` `!sleep` `!wake`
 - 战斗：`!combat`（开启自动战斗：持续攻击 + 受击反击 + 低血量撤退）`!combat-off`（关闭）
 - 感知：`!scan` `!players` `!entities` `!blocks` `!find <方块名>`（支持中文名）`!danger`
+- 挖掘：`!mine <方块名> [数量]`（自动走近/换工具/挖，24 格范围）
 - 背包：`!inv` `!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位）
 - 合成：`!recipes <物品>`（查配方与缺口）`!craft <物品> [数量]`（合成）`!gear`（自动装备最佳武器/护甲）
 - 生存：`!eat`（开启自动进食，默认开启）`!eat-off`（关闭）
@@ -128,6 +130,7 @@ tests/
 - `craft_item` - 合成物品（自动匹配配方与材料检查）
 - `equip_gear` - 自动装备最佳武器与护甲
 - `attack_nearest` - 攻击最近的敌对生物
+- `mine_block` - 挖掘指定方块（自动走近/换工具）
 - `connect` - 连接服务器
 - `disconnect` - 断开连接
 

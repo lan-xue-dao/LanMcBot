@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock } from './lib/bot.mjs'
 
 let globalBot = null
 let globalNav = null
@@ -110,6 +110,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: { type: 'object', properties: {} }
     },
     {
+      name: 'mine_block',
+      description: '挖掘指定方块（自动走近/换工具，最多 24 格范围）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          block: { type: 'string', description: '方块名（中/英文）' },
+          count: { type: 'number', description: '挖掘数量，默认 1' }
+        },
+        required: ['block']
+      }
+    },
+    {
       name: 'connect',
       description: '连接到Minecraft服务器',
       inputSchema: { type: 'object', properties: {} }
@@ -209,6 +221,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const r = attackTarget()
         if (!r) return { content: [{ type: 'text', text: '附近没有敌对生物' }], isError: true }
         return { content: [{ type: 'text', text: `已攻击: ${r}` }] }
+      }
+
+      case 'mine_block': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await mineBlock(args.block, args.count || 1)
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
       }
 
       case 'connect': {
