@@ -5,6 +5,7 @@ import { handleCommand } from './lib/commands.mjs'
 import { startPassivePerception, stopPassivePerception, getStatus } from './lib/perception/index.mjs'
 import { translateEntity, translateMessage } from './lib/i18n.mjs'
 import { getMinimap } from './lib/minimap.mjs'
+import { formatKickReason } from './lib/utils.mjs'
 
 const MAP_ROWS = 11
 const HUD_ROWS = MAP_ROWS + 1
@@ -325,22 +326,13 @@ function handleKeypress(str, key) {
   }
 }
 
-function formatKickReason(reason) {
-  if (typeof reason === 'string') return reason
-  if (Array.isArray(reason)) return reason.map(formatKickReason).join(' | ')
-  if (reason && typeof reason === 'object') {
-    const extras = reason.extra
-    if (Array.isArray(extras)) return formatKickReason(extras)
-    return reason.text || JSON.stringify(reason)
-  }
-  return String(reason)
-}
-
 function exit() {
   bot.destroyBot()
   stopTui()
   process.exit(0)
 }
+
+let statusTimer = null
 
 function startTui() {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
@@ -359,12 +351,13 @@ function startTui() {
   started = true
 
   addMessage(logRaw('交互模式已启动 - !help 查看命令'))
-  setInterval(refreshStatus, 1000)
+  statusTimer = setInterval(refreshStatus, 1000)
   render()
 }
 
 function stopTui() {
   if (!started) return
+  if (statusTimer) { clearInterval(statusTimer); statusTimer = null }
   process.stdout.write('\x1b[?25h\x1b[?1049l')
   process.stdin.setRawMode(false)
   process.stdout.removeListener('resize', render)

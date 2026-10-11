@@ -61,14 +61,16 @@ describe('nav/world.mjs', () => {
       expect(info.climbable).to.be.true
     })
 
-    it('should identify sign as openable', () => {
+    it('should identify sign as penetrable but not openable or standable', () => {
       const block = { name: 'oak_sign', _properties: {} }
       const info = blockInfo(block)
-      expect(info.openable).to.be.true
+      expect(info.penetrable).to.be.true
+      expect(info.openable).to.be.false
+      expect(info.standable).to.be.false
     })
 
-    it('should identify sign standing on as standable', () => {
-      const block = { name: 'oak_sign', _properties: {} }
+    it('should identify standing slab as standable', () => {
+      const block = { name: 'stone', _properties: {}, shapes: [[0, 0, 0, 1, 0.875]] }
       const info = blockInfo(block)
       expect(info.standable).to.be.true
     })

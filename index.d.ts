@@ -122,13 +122,14 @@ export type Block = import('mineflayer').Block
 export type InventoryItem = import('mineflayer').InventoryItem
 
 // 导出函数
-export { createBot, getBot, destroyBot, isLoggedIn, isReconnecting } from './lib/bot.mjs'
+export { createBot, getBot, destroyBot, isLoggedIn, isReconnecting, sendChat, quitBot } from './lib/bot.mjs'
 export { initNav, goto, stop, isMoving, destroy } from './lib/nav/index.mjs'
 export { scanEntities, scanPlayers, scanBlocks, findBlock, getDangerLevel } from './lib/perception/index.mjs'
 export { startPassivePerception, stopPassivePerception, getStatus } from './lib/perception/index.mjs'
 export { translateEntity, translateBlock, translateMessage, blockIdFromZh } from './lib/i18n.mjs'
 export { log, chatLog, logRaw } from './lib/logger.mjs'
 export { handleCommand } from './lib/commands.mjs'
+export { formatKickReason } from './lib/utils.mjs'
 
 // 感知模块导出
 export * from './lib/perception/index.mjs'

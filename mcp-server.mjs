@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat } from './lib/bot.mjs'
 
 let globalBot = null
 let globalNav = null
@@ -96,7 +96,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'send_chat': {
         const b = ensureBot()
         if (!b) return { content: [{ type: 'text', text: '未连接' }], isError: true }
-        b.chat(args.message)
+        sendChat(args.message)
         return { content: [{ type: 'text', text: `已发送: ${args.message}` }] }
       }
 
@@ -163,6 +163,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'disconnect': {
         if (globalBot) {
           destroyBot()
+          globalBot = null
+          globalNav = null
         }
         return { content: [{ type: 'text', text: '已断开' }] }
       }

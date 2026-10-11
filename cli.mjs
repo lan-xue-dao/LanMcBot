@@ -4,6 +4,7 @@ import { logRaw, chatLog } from './lib/logger.mjs'
 import { handleCommand } from './lib/commands.mjs'
 import { startPassivePerception, stopPassivePerception } from './lib/perception/index.mjs'
 import { translateEntity, translateMessage } from './lib/i18n.mjs'
+import { formatKickReason } from './lib/utils.mjs'
 
 console.log(`
   _   _                    ____        _
@@ -22,17 +23,6 @@ const rl = readline.createInterface({
 
 function addMessage(msg) {
   console.log(msg)
-}
-
-function formatKickReason(reason) {
-  if (typeof reason === 'string') return reason
-  if (Array.isArray(reason)) return reason.map(formatKickReason).join(' | ')
-  if (reason && typeof reason === 'object') {
-    const extras = reason.extra
-    if (Array.isArray(extras)) return formatKickReason(extras)
-    return reason.text || JSON.stringify(reason)
-  }
-  return String(reason)
 }
 
 function exit() {
@@ -137,7 +127,7 @@ rl.on('line', (input) => {
   }
 })
 
-rl.on('close', () => {
-  bot.destroyBot()
+rl.on('close', async () => {
+  await bot.destroyBot()
   process.exit(0)
 })
