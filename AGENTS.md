@@ -183,11 +183,12 @@ tests/
 
 ### 已知待优化项（未修）
 
-- **已入 `open` 的节点无法改进 `g`**：`if (closed.has(nk) || openKeys.has(nk)) continue` 直接跳过，缺 decrease-key。因边权不均匀（`RISE_COST` 随高度差、`OPEN_COST` 仅对门），**会产出次优路径**
-- `key = (x,z) => x*65536 + z` 在 |坐标差| ≥65536 时会碰撞；当前受 `maxRange=48` 保护，安全但脆
+（无）
 
 ### 已优化项
 
+- **A* 惰性 decrease-key**（提交 `e0118db`）：发现更优 g 时更新 `gScore` 权威值并允许重复入堆，pop 出 g 与权威值不一致的陈旧条目直接跳过；closed 集仍防重复展开。修复了旧实现「已入 open 的节点无法改进 g」在非均匀边权（RISE/OPEN_COST）下的次优路径问题。**勿回归**：入堆条件是 `cost < gScore.get(nk)`，不要再加 `openKeys.has(nk) continue`
+- **坐标键防碰撞**：`key=(x,z)=>x*65536+z` 改为字符串键 `` `${x},${z}` ``（旧键在 |坐标差|≥65536 时碰撞）
 - **`open` 集取最小 f 已从线性扫描改为二叉堆**（`plan.mjs` 的 `MinHeap`，平局按入堆序 `seq` 比较，完全复刻旧 Map 先入优先语义）：整体由 O(n²) 降到 O(n log n)，路径产出行为不变（9 组对照测试全匹配）。`openKeys` Set 保留 `has` 判断。
 
 ### 关于替换为第三方引擎
