@@ -65,6 +65,7 @@ lib/
   survival.mjs     #   自动进食（P0-4）：食物表/选食纯逻辑 + 注入式 controller（副手进食，默认开启）
   mining.mjs       #   挖掘（P0-3）：选目标/选工具纯逻辑（pickMineTarget/pickBestTool/nextAction）
   containers.mjs   #   容器（P1）：箱子/木桶存取规划纯逻辑（planDeposit/planWithdraw/pickNearestContainer）
+  triggers.mjs     #   触发引擎（P1）：when/match 规则解析与匹配纯逻辑 + 引擎（!rule 管理，事件: chat/death/health/join/leave）
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
   minimap.mjs      # 小地图（MCC 算法）
@@ -104,6 +105,7 @@ tests/
 - 背包：`!inv` `!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位）
 - 合成：`!recipes <物品>`（查配方与缺口）`!craft <物品> [数量]`（合成）`!gear`（自动装备最佳武器/护甲）
 - 生存：`!eat`（开启自动进食，默认开启）`!eat-off`（关闭）
+- 触发：`!rule add "when <事件> <匹配式> then <动作> [参数]"` `!rule list` `!rule del <序号>`（事件: chat/death/health/join/leave；匹配: /正则/ contains: exact: *；动作: say <文本> 或触发 trigger_action 事件）
 - 系统：`!help` `!exit/!quit` `!restart` `!connect` `!reconnect` `!mcp` `!mcp-stdio` `!mcp-sse`
 
 **已修复（Promise 调用点）**：`bot.placeBlock()` 与 `bot.sleep()` 返回 Promise，调用点一律 `.then/.catch` 回填消息，勿再按同步值判断（`!result.ok` 恒真、`result === 'sleeping'` 恒假）。`handleCommand` 保持同步返回 boolean，因 cli/tui 的 `if (!handled)` 依赖它 fallback 到聊天。
