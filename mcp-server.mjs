@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, depositToChest, withdrawFromChest } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, depositToChest, withdrawFromChest, moveTo, stopMove } from './lib/bot.mjs'
 
 let globalBot = null
 let globalNav = null
@@ -144,6 +144,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       }
     },
     {
+      name: 'move_to',
+      description: '寻路移动到指定坐标（自研 nav，含开门/绕障）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          x: { type: 'number', description: '目标 X' },
+          y: { type: 'number', description: '目标 Y' },
+          z: { type: 'number', description: '目标 Z' }
+        },
+        required: ['x', 'y', 'z']
+      }
+    },
+    {
+      name: 'stop_move',
+      description: '停止移动',
+      inputSchema: { type: 'object', properties: {} }
+    },
+    {
       name: 'connect',
       description: '连接到Minecraft服务器',
       inputSchema: { type: 'object', properties: {} }
@@ -261,6 +279,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
         const r = await withdrawFromChest(args.item, args.count || 1)
         return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'move_to': {
+        const b = getBot()
+        if (!b) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const ok = moveTo(Number(args.x), Number(args.y), Number(args.z))
+        return { content: [{ type: 'text', text: ok ? `正在移动到 (${args.x}, ${args.y}, ${args.z})` : '移动失败（nav 未初始化）' }], isError: !ok }
+      }
+
+      case 'stop_move': {
+        const ok = stopMove()
+        return { content: [{ type: 'text', text: ok ? '已停止移动' : '停止失败（nav 未初始化）' }], isError: !ok }
       }
 
       case 'connect': {

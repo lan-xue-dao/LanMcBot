@@ -137,6 +137,8 @@ tests/
 - `mine_block` - 挖掘指定方块（自动走近/换工具）
 - `chest_deposit` - 存背包物品入最近容器（可选 keep 保留名单）
 - `chest_withdraw` - 从最近容器取出物品
+- `move_to` - 寻路移动到指定坐标（自研 nav）
+- `stop_move` - 停止移动
 - `connect` - 连接服务器
 - `disconnect` - 断开连接
 
