@@ -98,7 +98,7 @@ tests/
 
 - 移动：`!f/前` `!b/后` `!l/左` `!r/右` `!jump` `!sneak` `!stop` `!move <x> <y> <z>`（寻路）
 - 动作：`!attack` `!use` `!sleep` `!wake`
-- 战斗：`!combat`（开启自动战斗：持续攻击 + 受击反击 + 低血量撤退）`!combat-off`（关闭）
+- 战斗：`!combat`（开启自动战斗：持续攻击 + 受击反击 + 低血量撤退）`!combat-off`（关闭）`!pvp`/`!pvp-off`（PvP 开关，默认关；开启后玩家按距离参与索敌）
 - 感知：`!scan` `!players` `!entities` `!blocks` `!find <方块名>`（支持中文名）`!danger`
 - 挖掘：`!mine <方块名> [数量]`（自动走近/换工具/挖，24 格范围）
 - 容器：`!chest 存 [保留物品名...]`（存入最近箱子/木桶，默认保留工具/武器/食物）`!chest 取 <物品> [数量]`

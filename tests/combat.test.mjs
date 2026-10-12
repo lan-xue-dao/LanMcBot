@@ -100,4 +100,30 @@ describe('combat: createCombatController', () => {
     expect(ctrl.isEnabled()).to.equal(true) // 仍 enabled，但无 bot 不报错
     ctrl.stop()
   })
+
+  it('PvP 默认关：玩家不算目标；setPvp(true) 后玩家成为更近目标', () => {
+    const attacked = []
+    const player = { id: 7, name: 'player', username: 'Steve', position: { x: 2, y: 0, z: 0, distanceTo(p) { return Math.hypot(p.x - this.x, p.y - this.y, p.z - this.z) } } }
+    const zombie = { id: 8, name: 'zombie', position: { x: 3, y: 0, z: 0, distanceTo(p) { return Math.hypot(p.x - this.x, p.y - this.y, p.z - this.z) } } }
+    const bot = {
+      username: 'LanBot',
+      health: 20,
+      entity: { position: { x: 0, y: 0, z: 0, distanceTo(p) { return Math.hypot(p.x, p.y, p.z) } } },
+      entities: { player, zombie }
+    }
+    const ctrl = createCombatController({
+      getBot: () => bot,
+      onAttack: (e) => attacked.push(e.username || e.name),
+      maxDistance: 16,
+      tickMs: 500
+    })
+    ctrl.setEnabled(true)
+    ctrl.step()
+    expect(attacked).to.deep.equal(['zombie']) // PvE only
+    expect(ctrl.isPvp()).to.equal(false)
+    ctrl.setPvp(true)
+    ctrl.step()
+    expect(attacked).to.deep.equal(['zombie', 'Steve']) // 玩家更近，成为目标
+    ctrl.stop()
+  })
 })

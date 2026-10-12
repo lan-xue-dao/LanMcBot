@@ -455,6 +455,9 @@ bot.createBot((event, data) => {
     case 'combat_retreat':
       addMessage(logRaw(`🏃 低血量撤退 (${translateEntity(data.name)}) 生命: ${data.health}`))
       break
+    case 'combat_pvp':
+      addMessage(logRaw(data.enabled ? '⚔ PvP 已开启' : '⚔ PvP 已关闭'))
+      break
     case 'ate':
       addMessage(logRaw(`🍔 进食 ${translateBlock(data.name)}`))
       break
