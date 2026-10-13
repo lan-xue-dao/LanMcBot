@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { parseTrigger, matchesTrigger, createTriggerEngine } from '../lib/triggers.mjs'
+import { parseTrigger, matchesTrigger, createTriggerEngine, serializeRule, deserializeRule } from '../lib/triggers.mjs'
 
 describe('triggers: parseTrigger', () => {
   it('解析正则规则', () => {
@@ -34,6 +34,28 @@ describe('triggers: matchesTrigger', () => {
     expect(matchesTrigger(parseTrigger('when chat exact:ping then say pong').rule, 'chat', 'ping')).to.equal(true)
     expect(matchesTrigger(parseTrigger('when chat exact:ping then say pong').rule, 'chat', 'ping!')).to.equal(false)
     expect(matchesTrigger(parseTrigger('when death * then event x').rule, 'death', '')).to.equal(true)
+  })
+})
+
+describe('triggers: serialize/deserialize（持久化往返）', () => {
+  it('regex 规则 JSON 往返后行为一致', () => {
+    const r = parseTrigger('when chat /买|sell/i then say 收到').rule
+    const round = deserializeRule(JSON.parse(JSON.stringify(serializeRule(r))))
+    expect(round).to.not.equal(null)
+    expect(matchesTrigger(round, 'chat', '我想买点东西')).to.equal(true)
+    expect(matchesTrigger(round, 'chat', 'hello')).to.equal(false)
+  })
+  it('contains/exact/any 往返', () => {
+    for (const t of ['when chat contains:签到 then cmd !sign', 'when chat exact:ping then say pong', 'when death * then event died']) {
+      const r = parseTrigger(t).rule
+      const round = deserializeRule(JSON.parse(JSON.stringify(serializeRule(r))))
+      expect(round).to.not.equal(null)
+    }
+  })
+  it('非法条目反序列化为 null', () => {
+    expect(deserializeRule(null)).to.equal(null)
+    expect(deserializeRule({ event: 'chat', kind: 'regex', source: '[bad', action: 'say' })).to.equal(null)
+    expect(deserializeRule({ event: 'chat', kind: 'bogus', action: 'say' })).to.equal(null)
   })
 })
 

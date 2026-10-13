@@ -13,6 +13,7 @@ chat_*.log
 config.json
 password.enc
 *.local.json
+rules.json
 .env
 .env.local
 .env.*.local
