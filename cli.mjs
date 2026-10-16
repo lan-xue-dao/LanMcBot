@@ -129,6 +129,9 @@ bot.createBot((event, data) => {
     case 'combat_pvp':
       addMessage(logRaw(data.enabled ? '⚔ PvP 已开启' : '⚔ PvP 已关闭'))
       break
+    case 'build_done':
+      addMessage(logRaw(`🧱 建造 ${data.type}: 放置 ${data.placed}/${data.total}（跳过 ${data.skipped}）`))
+      break
     case 'ate':
       addMessage(logRaw(`🍔 进食 ${translateBlock(data.name)}`))
       break
