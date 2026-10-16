@@ -65,7 +65,8 @@ lib/
   survival.mjs     #   自动进食（P0-4）：食物表/选食纯逻辑 + 注入式 controller（副手进食，默认开启）
   mining.mjs       #   挖掘（P0-3）：选目标/选工具纯逻辑（pickMineTarget/pickBestTool/nextAction）
   containers.mjs   #   容器（P1）：箱子/木桶存取规划纯逻辑（planDeposit/planWithdraw/pickNearestContainer）
-  triggers.mjs     #   触发引擎（P1）：when/match 规则解析与匹配纯逻辑 + 引擎（!rule 管理，事件: chat/death/health/join/leave）
+  triggers.mjs     #   触发引擎（P1）：when/match 规则解析与匹配纯逻辑 + 引擎（!rule 管理，事件: chat/death/health/join/leave；规则持久化到 rules.json，启动自动恢复）
+  build.mjs        #   建造蓝图（P0-3 建造侧）：模板展开纯函数（generateBlueprint 墙/地板/空心盒/立柱 + checkBlueprint 上限 512）
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
   minimap.mjs      # 小地图（MCC 算法）
@@ -101,6 +102,7 @@ tests/
 - 战斗：`!combat`（开启自动战斗：持续攻击 + 受击反击 + 低血量撤退）`!combat-off`（关闭）`!pvp`/`!pvp-off`（PvP 开关，默认关；开启后玩家按距离参与索敌）
 - 感知：`!scan` `!players` `!entities` `!blocks` `!find <方块名>`（支持中文名）`!danger`
 - 挖掘：`!mine <方块名> [数量]`（自动走近/换工具/挖，24 格范围）
+- 建造：`!build <wall|floor|box|pillar|墙|地板|盒子|柱子> <方块名> <x1 y1 z1 x2 y2 z2>`（蓝图批量放置，上限 512 格，失败格跳过）
 - 容器：`!chest 存 [保留物品名...]`（存入最近箱子/木桶，默认保留工具/武器/食物）`!chest 取 <物品> [数量]`
 - 背包：`!inv` `!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位）
 - 合成：`!recipes <物品>`（查配方与缺口）`!craft <物品> [数量]`（合成）`!gear`（自动装备最佳武器/护甲）

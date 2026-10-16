@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, depositToChest, withdrawFromChest, moveTo, stopMove } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, depositToChest, withdrawFromChest, moveTo, stopMove } from './lib/bot.mjs'
 
 let globalBot = null
 let globalNav = null
@@ -119,6 +119,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           count: { type: 'number', description: '挖掘数量，默认 1' }
         },
         required: ['block']
+      }
+    },
+    {
+      name: 'build_blueprint',
+      description: '按蓝图模板批量建造（墙/地板/空心盒/立柱，两角点，上限 512 格，失败格跳过）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['wall', 'floor', 'box', 'pillar'], description: '模板类型' },
+          block: { type: 'string', description: '方块名（中/英文）' },
+          from: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }, required: ['x', 'y', 'z'], description: '角点1' },
+          to: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }, required: ['x', 'y', 'z'], description: '角点2' }
+        },
+        required: ['type', 'block', 'from', 'to']
       }
     },
     {
@@ -266,6 +280,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'mine_block': {
         if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
         const r = await mineBlock(args.block, args.count || 1)
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'build_blueprint': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await buildBlueprint(args.type, args.block, args.from, args.to)
         return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
       }
 
