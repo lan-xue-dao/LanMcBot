@@ -3,7 +3,7 @@ import * as bot from './lib/bot.mjs'
 import { logRaw, chatLog } from './lib/logger.mjs'
 import { handleCommand } from './lib/commands.mjs'
 import { startPassivePerception, stopPassivePerception, getStatus } from './lib/perception/index.mjs'
-import { translateEntity, translateMessage } from './lib/i18n.mjs'
+import { translateEntity, translateMessage, translateBlock } from './lib/i18n.mjs'
 import { getMinimap } from './lib/minimap.mjs'
 import { formatKickReason } from './lib/utils.mjs'
 
@@ -460,6 +460,21 @@ bot.createBot((event, data) => {
       break
     case 'build_done':
       addMessage(logRaw(`🧱 建造 ${data.type}: 放置 ${data.placed}/${data.total}（跳过 ${data.skipped}）`))
+      break
+    case 'block_dug':
+      addMessage(logRaw(`⛏ 已挖 ${translateBlock(data.name)}（累计 ${data.count}）`))
+      break
+    case 'rule_added':
+      addMessage(logRaw(`📜 规则 #${data.index} 已注册 [${data.event}]`))
+      break
+    case 'rule_removed':
+      addMessage(logRaw(`📜 规则 #${data.index} 已删除`))
+      break
+    case 'rules_loaded':
+      addMessage(logRaw(`📜 已从 rules.json 恢复 ${data.count} 条规则`))
+      break
+    case 'trigger_action':
+      addMessage(logRaw(`🎯 触发 [${data.event}] → ${data.action} ${data.args}`))
       break
     case 'ate':
       addMessage(logRaw(`🍔 进食 ${translateBlock(data.name)}`))
