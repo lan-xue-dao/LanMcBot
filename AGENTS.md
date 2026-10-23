@@ -82,6 +82,7 @@ lib/
   perception/
     index.mjs           # 感知统一导出（scan + monitor）
     active/scan.mjs     # 主动感知（命令触发，16×16×16，radius 8）
+    threat.mjs          #   感知增强：formatEntity（血量/朝向/手持/着地）+ threatScore/rankThreats（距离加权，零 bot 依赖可单测）
     passive/monitor.mjs # 被动监听（受伤/攻击/实体接近，过滤物品实体）
 index.d.ts             # TypeScript 类型定义（IDE 自动补全支持，package.json 已声明 types）
 setup-security.mjs     # 密码加密初始化（生成密钥 + password.enc + .env，含自检）
@@ -100,7 +101,7 @@ tests/
 - 移动：`!f/前` `!b/后` `!l/左` `!r/右` `!jump` `!sneak` `!stop` `!move <x> <y> <z>`（寻路）
 - 动作：`!attack` `!use` `!sleep` `!wake`
 - 战斗：`!combat`（开启自动战斗：持续攻击 + 受击反击 + 低血量撤退）`!combat-off`（关闭）`!pvp`/`!pvp-off`（PvP 开关，默认关；开启后玩家按距离参与索敌）
-- 感知：`!scan` `!players` `!entities` `!blocks` `!find <方块名>`（支持中文名）`!danger`
+- 感知：`!scan` `!players` `!entities` `!blocks` `!find <方块名>`（支持中文名）`!danger` `!threat`（距离加权威胁排序：血量/朝向/手持）
 - 挖掘：`!mine <方块名> [数量]`（自动走近/换工具/挖，24 格范围）
 - 建造：`!build <wall|floor|box|pillar|墙|地板|盒子|柱子> <方块名> <x1 y1 z1 x2 y2 z2>`（蓝图批量放置，上限 512 格，失败格跳过）
 - 容器：`!chest 存 [保留物品名...]`（存入最近箱子/木桶，默认保留工具/武器/食物）`!chest 取 <物品> [数量]`
@@ -137,6 +138,8 @@ tests/
 - `equip_gear` - 自动装备最佳武器与护甲
 - `attack_nearest` - 攻击最近的敌对生物
 - `mine_block` - 挖掘指定方块（自动走近/换工具）
+- `build_blueprint` - 蓝图批量建造（墙/地板/空心盒/立柱，两角点，上限 512 格）
+- `threat_report` - 威胁排序（血量/朝向/手持/距离加权评分，降序）
 - `chest_deposit` - 存背包物品入最近容器（可选 keep 保留名单）
 - `chest_withdraw` - 从最近容器取出物品
 - `move_to` - 寻路移动到指定坐标（自研 nav）

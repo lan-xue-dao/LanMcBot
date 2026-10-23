@@ -5,6 +5,7 @@ import {
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
 import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, depositToChest, withdrawFromChest, moveTo, stopMove } from './lib/bot.mjs'
+import { threatReport } from './lib/perception/index.mjs'
 
 let globalBot = null
 let globalNav = null
@@ -108,6 +109,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       name: 'attack_nearest',
       description: '攻击最近的敌对生物（单次）',
       inputSchema: { type: 'object', properties: {} }
+    },
+    {
+      name: 'threat_report',
+      description: '威胁排序报告（血量/朝向/手持/距离加权评分，按威胁降序）',
+      inputSchema: {
+        type: 'object',
+        properties: { radius: { type: 'number', description: '感知半径，默认 16' } }
+      }
     },
     {
       name: 'mine_block',
@@ -287,6 +296,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
         const r = await buildBlueprint(args.type, args.block, args.from, args.to)
         return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'threat_report': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = threatReport(args.radius || 16)
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.success }
       }
 
       case 'chest_deposit': {
