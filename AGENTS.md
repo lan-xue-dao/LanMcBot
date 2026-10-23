@@ -67,6 +67,7 @@ lib/
   containers.mjs   #   容器（P1）：箱子/木桶存取规划纯逻辑（planDeposit/planWithdraw/pickNearestContainer）
   triggers.mjs     #   触发引擎（P1）：when/match 规则解析与匹配纯逻辑 + 引擎（!rule 管理，事件: chat/death/health/join/leave；规则持久化到 rules.json，启动自动恢复）
   build.mjs        #   建造蓝图（P0-3 建造侧）：模板展开纯函数（generateBlueprint 墙/地板/空心盒/立柱 + checkBlueprint 上限 512）
+  smelt.mjs        #   熔炉烧炼（P1 合成域）：燃料表 fuelTicks / pickFuel / nextFurnaceAction 纯逻辑（零 bot 依赖可单测）
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
   minimap.mjs      # 小地图（MCC 算法）
@@ -106,7 +107,7 @@ tests/
 - 建造：`!build <wall|floor|box|pillar|墙|地板|盒子|柱子> <方块名> <x1 y1 z1 x2 y2 z2>`（蓝图批量放置，上限 512 格，失败格跳过）
 - 容器：`!chest 存 [保留物品名...]`（存入最近箱子/木桶，默认保留工具/武器/食物）`!chest 取 <物品> [数量]`
 - 背包：`!inv` `!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位）
-- 合成：`!recipes <物品>`（查配方与缺口）`!craft <物品> [数量]`（合成）`!gear`（自动装备最佳武器/护甲）
+- 合成：`!recipes <物品>`（查配方与缺口）`!craft <物品> [数量]`（合成）`!gear`（自动装备最佳武器/护甲）`!smelt <物品> [数量]`（熔炉烧炼，自动补料/燃料/取产出）
 - 生存：`!eat`（开启自动进食，默认开启）`!eat-off`（关闭）
 - 触发：`!rule add "when <事件> <匹配式> then <动作> [参数]"` `!rule list` `!rule del <序号>`（事件: chat/death/health/join/leave；匹配: /正则/ contains: exact: *；动作: say <文本> 或触发 trigger_action 事件）
 - 系统：`!help` `!exit/!quit` `!restart` `!connect` `!reconnect` `!mcp` `!mcp-stdio` `!mcp-sse`
@@ -139,6 +140,7 @@ tests/
 - `attack_nearest` - 攻击最近的敌对生物
 - `mine_block` - 挖掘指定方块（自动走近/换工具）
 - `build_blueprint` - 蓝图批量建造（墙/地板/空心盒/立柱，两角点，上限 512 格）
+- `smelt_item` - 熔炉烧炼（自动补原料/燃料并取回产出）
 - `threat_report` - 威胁排序（血量/朝向/手持/距离加权评分，降序）
 - `chest_deposit` - 存背包物品入最近容器（可选 keep 保留名单）
 - `chest_withdraw` - 从最近容器取出物品

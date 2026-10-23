@@ -461,6 +461,9 @@ bot.createBot((event, data) => {
     case 'build_done':
       addMessage(logRaw(`🧱 建造 ${data.type}: 放置 ${data.placed}/${data.total}（跳过 ${data.skipped}）`))
       break
+    case 'smelt_progress':
+      addMessage(logRaw(`🔥 烧炼进度 ${translateBlock(data.name)}: ${data.total}/${data.want}`))
+      break
     case 'block_dug':
       addMessage(logRaw(`⛏ 已挖 ${translateBlock(data.name)}（累计 ${data.count}）`))
       break

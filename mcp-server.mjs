@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, depositToChest, withdrawFromChest, moveTo, stopMove } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, depositToChest, withdrawFromChest, moveTo, stopMove } from './lib/bot.mjs'
 import { threatReport } from './lib/perception/index.mjs'
 
 let globalBot = null
@@ -109,6 +109,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       name: 'attack_nearest',
       description: '攻击最近的敌对生物（单次）',
       inputSchema: { type: 'object', properties: {} }
+    },
+    {
+      name: 'smelt_item',
+      description: '熔炉烧炼物品（自动补原料/燃料并取回产出；需背包有原料、附近有熔炉）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          item: { type: 'string', description: '原料名（中/英文，如 生牛肉/raw_beef）' },
+          count: { type: 'number', description: '烧炼数量，默认 1' }
+        },
+        required: ['item']
+      }
     },
     {
       name: 'threat_report',
@@ -295,6 +307,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'build_blueprint': {
         if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
         const r = await buildBlueprint(args.type, args.block, args.from, args.to)
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'smelt_item': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await smeltItem(args.item, args.count || 1)
         return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
       }
 
