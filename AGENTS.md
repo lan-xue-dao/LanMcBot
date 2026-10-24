@@ -63,7 +63,7 @@ lib/
   entities.mjs     #   实体分类单一数据源：统一敌对生物表 HOSTILE_MOBS + isHostile()
   craft.mjs        #   合成（P0-4）：零依赖纯逻辑（canCraft/ingredientsNeeded/matchCraftableByName）
   survival.mjs     #   自动进食（P0-4）：食物表/选食纯逻辑 + 注入式 controller（副手进食，默认开启）
-  mining.mjs       #   挖掘（P0-3）：选目标/选工具纯逻辑（pickMineTarget/pickBestTool/nextAction）
+  mining.mjs       #   挖掘（P0-3）：pickMineTarget/pickBestTool/nextAction 纯逻辑 + createMiner 注入式编排工厂（假 bot 可测运行期扫描/走近/换工具/挖循环）
   containers.mjs   #   容器（P1）：箱子/木桶存取规划纯逻辑（planDeposit/planWithdraw/pickNearestContainer）
   triggers.mjs     #   触发引擎（P1）：when/match 规则解析与匹配纯逻辑 + 引擎（!rule 管理，事件: chat/death/health/join/leave；规则持久化到 rules.json，启动自动恢复）
   build.mjs        #   建造蓝图（P0-3 建造侧）：模板展开纯函数（generateBlueprint 墙/地板/空心盒/立柱 + checkBlueprint 上限 512）
@@ -267,3 +267,4 @@ tests/
 - **MCP 每次工具调用都新建 bot**：改为模块级 `globalBot` + `ensureBot()` 单例，`SIGINT`/`SIGTERM` 走 `mcpShutdown()`；未连接的查询类工具返回 `isError: true`
 - **nav world 缓存无界增长**：`createWorld(blockAtFn, minY, worldSize=96)` 每 60s `cleanupCache()`，删除 `Math.hypot(cx,cz) > worldSize/2` 的键；`clearCache()` 同时清定时器；新增 `getCacheSize()`
 - **`quitBot()` 已真正 await 断连**（提交 `d587864`）：内部 `await waitForDisconnect()`（轮询 100ms 等 `bot`/`bot._client` 消失，最多 3s）再置 null；`destroyBot()` 与 `reconnect()` 已改 `async` 并 `await quitBot()`，`reconnect` 先置 `intentionalQuit` 防旧 bot 的 `end` 事件误触发自动重连
+- **`!mine` 实机从未成功（剥皮 Block）**：旧 `mineBlock` 把 `bot.blockAt` 的真 Block 剥成 `{name, position}` 再传给 `bot.dig`，而 mineflayer `dig` 内部调 `block.digTime()`（prismarine-block 实例方法）→ TypeError，被循环里的退避 catch 吞掉后一路重试到 60s 超时。纯函数测试全绿也测不到（编排从没测过）。修复：编排抽为 `createMiner` 注入式工厂、候选直接放真 Block 进 `pickMineTarget`/`dig`；假 bot 的 `dig` stub 显式校验 block 是完整对象（缺 `hardness`/`digTime` 即抛错），复现并锁死该回归（提交本轮）
