@@ -124,10 +124,22 @@ export type InventoryItem = import('mineflayer').InventoryItem
 // 导出函数
 export {
   createBot, getBot, destroyBot, isLoggedIn, isReconnecting, sendChat, quitBot,
-  setFollow, stopFollow, getFollowTarget, isFollowEnabled, findFollowPlayer
+  setFollow, stopFollow, getFollowTarget, isFollowEnabled, findFollowPlayer,
+  setCombat, startCombat, stopCombat, setPvp, setAutoEat, isAutoEatEnabled,
+  addRule, removeRule, listRules, handleTriggerEvent,
+  getRecipes, craftItem, equipBestGear, attackTarget, mineBlock,
+  buildBlueprint, smeltItem, listTrades, tradeWith,
+  depositToChest, withdrawFromChest, findContainerBlock,
+  moveTo, stopMove, placeBlock
 } from './lib/bot.mjs'
 // 跟随能力域（纯函数 + 注入式 controller，零 bot 依赖）
 export { findPlayerByName, decideFollow, createFollowController } from './lib/follow.mjs'
+// 村民交易能力域（纯函数，零 bot 依赖）
+export { formatTrades, canAfford, pickBestTrade } from './lib/trade.mjs'
+// 熔炉烧炼能力域（纯函数，零 bot 依赖）
+export { fuelTicks, pickFuel, nextFurnaceAction } from './lib/smelt.mjs'
+// 建造蓝图能力域（纯函数，零 bot 依赖）
+export { generateBlueprint, checkBlueprint } from './lib/build.mjs'
 export { initNav, goto, stop, isMoving, destroy } from './lib/nav/index.mjs'
 export { scanEntities, scanPlayers, scanBlocks, findBlock, getDangerLevel } from './lib/perception/index.mjs'
 export { startPassivePerception, stopPassivePerception, getStatus } from './lib/perception/index.mjs'

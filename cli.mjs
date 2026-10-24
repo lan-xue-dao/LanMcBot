@@ -135,6 +135,9 @@ bot.createBot((event, data) => {
     case 'follow_stopped':
       addMessage(logRaw(`🚶 已停止跟随 ${data.name}`))
       break
+    case 'traded':
+      addMessage(logRaw(`💰 成交 ${translateBlock(data.name)} ×${data.count}（花费 ${data.price} ${translateBlock(data.costName || 'emerald')}）`))
+      break
     case 'follow_lost':
       addMessage(logRaw(`🚶 跟丢了 ${data.name}（不在视野内）`))
       break

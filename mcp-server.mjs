@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, depositToChest, withdrawFromChest, moveTo, stopMove, setFollow, stopFollow, getFollowTarget, findFollowPlayer, isLoggedIn } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, listTrades, tradeWith, depositToChest, withdrawFromChest, moveTo, stopMove, setFollow, stopFollow, getFollowTarget, findFollowPlayer, isLoggedIn } from './lib/bot.mjs'
 import { threatReport } from './lib/perception/index.mjs'
 
 let globalBot = null
@@ -118,6 +118,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           item: { type: 'string', description: '原料名（中/英文，如 生牛肉/raw_beef）' },
           count: { type: 'number', description: '烧炼数量，默认 1' }
+        },
+        required: ['item']
+      }
+    },
+    {
+      name: 'list_trades',
+      description: '查看最近村民的交易报价（归一化，含售罄/剩余次数）',
+      inputSchema: { type: 'object', properties: {} }
+    },
+    {
+      name: 'trade_with',
+      description: '与最近村民交易指定产物（自动走近/选最佳可支付交易/下单，支持中英文名）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          item: { type: 'string', description: '目标产物名（中/英文，如 diamond/钻石）' },
+          count: { type: 'number', description: '交易次数，默认 1' }
         },
         required: ['item']
       }
@@ -329,6 +346,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'smelt_item': {
         if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
         const r = await smeltItem(args.item, args.count || 1)
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'list_trades': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await listTrades()
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'trade_with': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await tradeWith(args.item, args.count || 1)
         return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
       }
 

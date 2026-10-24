@@ -69,6 +69,7 @@ lib/
   build.mjs        #   建造蓝图（P0-3 建造侧）：模板展开纯函数（generateBlueprint 墙/地板/空心盒/立柱 + checkBlueprint 上限 512）
   smelt.mjs        #   熔炉烧炼（P1 合成域）：燃料表 fuelTicks / pickFuel / nextFurnaceAction 纯逻辑（零 bot 依赖可单测）
   follow.mjs       #   跟随（P1）：findPlayerByName/decideFollow 纯函数 + 注入式 controller（默认关；combat 占用时 isBusy 让出 nav）
+  trade.mjs        #   村民交易（P1）：formatTrades/canAfford/pickBestTrade 纯逻辑（归一化/可支付判定/最佳选单，零 bot 依赖可单测）
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
   minimap.mjs      # 小地图（MCC 算法）
@@ -111,6 +112,7 @@ tests/
 - 合成：`!recipes <物品>`（查配方与缺口）`!craft <物品> [数量]`（合成）`!gear`（自动装备最佳武器/护甲）`!smelt <物品> [数量]`（熔炉烧炼，自动补料/燃料/取产出）
 - 生存：`!eat`（开启自动进食，默认开启）`!eat-off`（关闭）
 - 跟随：`!follow <玩家名>`（跟随视野内玩家，>5m 自动 nav 靠近；默认关，战斗开启时自动让权）`!follow-off`（关闭）；裸 `!follow` 显示当前目标/用法
+- 交易：`!trade`（看最近村民报价）`!trade <物品> [数量]`（自动走近/选最佳可支付交易/下单，支持中文名）
 - 触发：`!rule add "when <事件> <匹配式> then <动作> [参数]"` `!rule list` `!rule del <序号>`（事件: chat/death/health/join/leave；匹配: /正则/ contains: exact: *；动作: say <文本> 或触发 trigger_action 事件）
 - 系统：`!help` `!exit/!quit` `!restart` `!connect` `!reconnect` `!mcp` `!mcp-stdio` `!mcp-sse`
 
@@ -143,6 +145,8 @@ tests/
 - `mine_block` - 挖掘指定方块（自动走近/换工具）
 - `build_blueprint` - 蓝图批量建造（墙/地板/空心盒/立柱，两角点，上限 512 格）
 - `smelt_item` - 熔炉烧炼（自动补原料/燃料并取回产出）
+- `list_trades` - 查看最近村民交易报价（归一化，含售罄/剩余次数）
+- `trade_with` - 与最近村民交易指定产物（自动走近/选最佳可支付交易，支持中英文名）
 - `threat_report` - 威胁排序（血量/朝向/手持/距离加权评分，降序）
 - `chest_deposit` - 存背包物品入最近容器（可选 keep 保留名单）
 - `chest_withdraw` - 从最近容器取出物品
