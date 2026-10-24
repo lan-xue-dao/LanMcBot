@@ -69,7 +69,7 @@ lib/
   build.mjs        #   建造蓝图（P0-3 建造侧）：模板展开纯函数（generateBlueprint 墙/地板/空心盒/立柱 + checkBlueprint 上限 512）
   smelt.mjs        #   熔炉烧炼（P1 合成域）：燃料表 fuelTicks / pickFuel / nextFurnaceAction 纯逻辑（零 bot 依赖可单测）
   follow.mjs       #   跟随（P1）：findPlayerByName/decideFollow 纯函数 + 注入式 controller（默认关；combat 占用时 isBusy 让出 nav）
-  trade.mjs        #   村民交易（P1）：formatTrades/canAfford/pickBestTrade 纯逻辑（归一化/可支付判定/最佳选单，零 bot 依赖可单测）
+  trade.mjs        #   村民交易（P1）：formatTrades/canAfford/pickBestTrade 纯逻辑（含 remaining>=count 校验）+ createTrader 注入式编排工厂（假 villager 可测）
   enchant.mjs      #   附魔台（P1）：formatEnchantOptions/enchantOptionsReady/pickEnchantOption 纯逻辑（选档/就绪判定/经验校验，零 bot 依赖可单测）
   farming.mjs      #   耕种收获（P1）：CROPS 表 + isRipe/selectRipeCrops/replantSeed 纯逻辑 + createHarvester 注入式编排工厂（假 bot 可测运行期循环/走近/补种语义）
   inventory.mjs    #   背包整理（P1）：planStackMerge（同类散堆合并规划）+ countFragments（碎片统计），零 bot 依赖可单测

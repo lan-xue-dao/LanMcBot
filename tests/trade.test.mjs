@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { formatTrades, canAfford, pickBestTrade } from '../lib/trade.mjs'
+import { formatTrades, canAfford, pickBestTrade, createTrader } from '../lib/trade.mjs'
 
 // 构造贴合 mineflayer villager.js 字段的假 trade
 function mkTrade({ in1 = 'emerald', in1Count = 1, realPrice, in2 = null, in2Count = 1, out = 'wheat', outCount = 6, maxUses = 16, uses = 0 } = {}) {
@@ -89,5 +89,101 @@ describe('trade: pickBestTrade', () => {
     expect(pickBestTrade([mkTrade({ out: 'wheat' })], 'shulker_shell', inv)).to.equal(null)
     expect(pickBestTrade([], 'x', inv)).to.equal(null)
     expect(pickBestTrade([mkTrade()], '', inv)).to.equal(null)
+  })
+  it('请求次数超过剩余次数的不选（修复：旧只查 soldOut，下单时 assert trade blocked）', () => {
+    const trades = [mkTrade({ out: 'diamond', outCount: 1, maxUses: 16, uses: 14 })] // 剩 2
+    expect(pickBestTrade(trades, 'diamond', inv, { count: 5 })).to.equal(null)   // 要 5 > 剩 2
+    const ok = pickBestTrade(trades, 'diamond', inv, { count: 2 })               // 恰好 2 可选
+    expect(ok).to.not.equal(null)
+    expect(ok.count).to.equal(2)
+  })
+})
+
+// ---------- createTrader 假 villager 编排 ----------
+
+function makeVillager (trades) {
+  const events = []
+  const v = {
+    trades,
+    id: 7,
+    async trade (index, count) {
+      const t = trades[index]
+      events.push(['trade', index, count, t.outputItem.name])
+      // 模拟 mineflayer：剩余次数校验（assert trade blocked）
+      if (t.maximumNbTradeUses - t.nbTradeUses < count) throw new Error('trade blocked')
+      t.nbTradeUses += count
+    },
+    async close () { events.push(['close']) }
+  }
+  return { v, events }
+}
+
+function traderFor (trades, backpack) {
+  const { v, events } = makeVillager(trades)
+  const trader = createTrader({
+    getBot: () => ({ entity: { position: { x: 0, y: 0, z: 0 } } }),
+    findVillager: () => ({ name: 'villager', position: { x: 1, y: 64, z: 1, distanceTo: () => 2 } }),
+    approachAndWait: async () => true,
+    openVillager: async () => v,
+    items: () => backpack,
+    zhIdOf: () => null
+  })
+  return { trader, events }
+}
+
+describe('trade: createTrader 编排（假 villager 运行期）', () => {
+  it('成功下单：产出/花费按次数放大，最终关市', async () => {
+    const backpack = [{ name: 'emerald', count: 10 }]
+    const trades = [mkTrade({ out: 'diamond', outCount: 1 })]
+    const { trader, events } = traderFor(trades, backpack)
+    const r = await trader('diamond', 3)
+    expect(r.ok).to.equal(true)
+    expect(r.output).to.equal('diamond')
+    expect(r.count).to.equal(3)   // 1×3
+    expect(r.price).to.equal(3)   // realPrice 1×3
+    expect(events).to.deep.include(['close'])
+  })
+
+  it('村民无此产物：列出可换清单', async () => {
+    const { trader } = traderFor([mkTrade({ out: 'wheat' })], [{ name: 'emerald', count: 5 }])
+    const r = await trader('diamond', 1)
+    expect(r.ok).to.equal(false)
+    expect(r.reason).to.include('可换')
+    expect(r.reason).to.include('wheat')
+  })
+
+  it('售罄交易不选', async () => {
+    const trades = [mkTrade({ out: 'diamond', uses: 16, maxUses: 16 })]
+    const { trader } = traderFor(trades, [{ name: 'emerald', count: 10 }])
+    const r = await trader('diamond', 1)
+    expect(r.ok).to.equal(false)
+  })
+
+  it('中文名经 zhIdOf 映射后仍可匹配', async () => {
+    const trades = [mkTrade({ out: 'diamond', outCount: 1 })]
+    const zhTrader = createTrader({
+      getBot: () => ({ entity: { position: { x: 0, y: 0, z: 0 } } }),
+      findVillager: () => ({ name: 'villager', position: { x: 1, y: 64, z: 1, distanceTo: () => 2 } }),
+      approachAndWait: async () => true,
+      openVillager: async () => makeVillager(trades).v,
+      items: () => [{ name: 'emerald', count: 5 }],
+      zhIdOf: (n) => (n === '钻石' ? 'diamond' : null)
+    })
+    const r = await zhTrader('钻石', 1)
+    expect(r.ok).to.equal(true)
+    expect(r.output).to.equal('diamond')
+  })
+
+  it('未连接时安全返回', async () => {
+    const trader = createTrader({
+      getBot: () => null,
+      findVillager: () => ({ name: 'villager', position: { x: 0, y: 0, z: 0 } }),
+      approachAndWait: async () => true,
+      openVillager: async () => { throw new Error('should not open') },
+      items: () => [], zhIdOf: () => null
+    })
+    const r = await trader('diamond', 1)
+    expect(r.ok).to.equal(false)
+    expect(r.reason).to.equal('未连接')
   })
 })
