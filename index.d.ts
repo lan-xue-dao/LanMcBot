@@ -139,7 +139,7 @@ export { formatTrades, canAfford, pickBestTrade } from './lib/trade.mjs'
 // 附魔能力域（纯函数，零 bot 依赖）
 export { formatEnchantOptions, enchantOptionsReady, pickEnchantOption } from './lib/enchant.mjs'
 // 耕种/收获能力域（纯函数，零 bot 依赖）
-export { CROPS, getCropInfo, isRipe, selectRipeCrops, replantSeed } from './lib/farming.mjs'
+export { CROPS, getCropInfo, isRipe, selectRipeCrops, replantSeed, createHarvester } from './lib/farming.mjs'
 // 背包整理能力域（纯函数，零 bot 依赖）
 export { planStackMerge, countFragments } from './lib/inventory.mjs'
 // 熔炉烧炼能力域（纯函数，零 bot 依赖）

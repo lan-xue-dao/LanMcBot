@@ -71,7 +71,7 @@ lib/
   follow.mjs       #   跟随（P1）：findPlayerByName/decideFollow 纯函数 + 注入式 controller（默认关；combat 占用时 isBusy 让出 nav）
   trade.mjs        #   村民交易（P1）：formatTrades/canAfford/pickBestTrade 纯逻辑（归一化/可支付判定/最佳选单，零 bot 依赖可单测）
   enchant.mjs      #   附魔台（P1）：formatEnchantOptions/enchantOptionsReady/pickEnchantOption 纯逻辑（选档/就绪判定/经验校验，零 bot 依赖可单测）
-  farming.mjs      #   耕种收获（P1）：CROPS 表 + isRipe/selectRipeCrops/replantSeed 纯逻辑（成熟判定/补种映射，零 bot 依赖可单测）
+  farming.mjs      #   耕种收获（P1）：CROPS 表 + isRipe/selectRipeCrops/replantSeed 纯逻辑 + createHarvester 注入式编排工厂（假 bot 可测运行期循环/走近/补种语义）
   inventory.mjs    #   背包整理（P1）：planStackMerge（同类散堆合并规划）+ countFragments（碎片统计），零 bot 依赖可单测
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
