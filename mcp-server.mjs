@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, listTrades, tradeWith, depositToChest, withdrawFromChest, moveTo, stopMove, setFollow, stopFollow, getFollowTarget, findFollowPlayer, isLoggedIn } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, listTrades, tradeWith, tidyInventory, depositToChest, withdrawFromChest, moveTo, stopMove, setFollow, stopFollow, getFollowTarget, findFollowPlayer, isLoggedIn } from './lib/bot.mjs'
 import { threatReport } from './lib/perception/index.mjs'
 
 let globalBot = null
@@ -74,6 +74,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'get_inventory',
       description: '获取机器人背包物品',
+      inputSchema: { type: 'object', properties: {} }
+    },
+    {
+      name: 'tidy_inventory',
+      description: '一键整理背包：合并同类散堆（仅主背包，不开窗口/不碰装备副手）',
       inputSchema: { type: 'object', properties: {} }
     },
     {
@@ -303,6 +308,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           slot: i.slot
         }))
         return { content: [{ type: 'text', text: JSON.stringify(items, null, 2) }] }
+      }
+
+      case 'tidy_inventory': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await tidyInventory()
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
       }
 
       case 'get_recipes': {

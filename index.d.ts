@@ -128,7 +128,7 @@ export {
   setCombat, startCombat, stopCombat, setPvp, setAutoEat, isAutoEatEnabled,
   addRule, removeRule, listRules, handleTriggerEvent,
   getRecipes, craftItem, equipBestGear, attackTarget, mineBlock,
-  buildBlueprint, smeltItem, listTrades, tradeWith,
+  buildBlueprint, smeltItem, listTrades, tradeWith, tidyInventory,
   depositToChest, withdrawFromChest, findContainerBlock,
   moveTo, stopMove, placeBlock
 } from './lib/bot.mjs'
@@ -136,6 +136,8 @@ export {
 export { findPlayerByName, decideFollow, createFollowController } from './lib/follow.mjs'
 // 村民交易能力域（纯函数，零 bot 依赖）
 export { formatTrades, canAfford, pickBestTrade } from './lib/trade.mjs'
+// 背包整理能力域（纯函数，零 bot 依赖）
+export { planStackMerge, countFragments } from './lib/inventory.mjs'
 // 熔炉烧炼能力域（纯函数，零 bot 依赖）
 export { fuelTicks, pickFuel, nextFurnaceAction } from './lib/smelt.mjs'
 // 建造蓝图能力域（纯函数，零 bot 依赖）
