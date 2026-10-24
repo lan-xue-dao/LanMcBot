@@ -129,6 +129,9 @@ bot.createBot((event, data) => {
     case 'combat_pvp':
       addMessage(logRaw(data.enabled ? '⚔ PvP 已开启' : '⚔ PvP 已关闭'))
       break
+    case 'combat_mode':
+      addMessage(logRaw(`🎯 索敌模式: ${data.mode}`))
+      break
     case 'follow_started':
       addMessage(logRaw(`🚶 开始跟随 ${data.name}`))
       break

@@ -103,7 +103,7 @@ tests/
 
 - 移动：`!f/前` `!b/后` `!l/左` `!r/右` `!jump` `!sneak` `!stop` `!move <x> <y> <z>`（寻路）
 - 动作：`!attack` `!use` `!sleep` `!wake`
-- 战斗：`!combat`（开启自动战斗：持续攻击 + 受击反击 + 低血量撤退）`!combat-off`（关闭）`!pvp`/`!pvp-off`（PvP 开关，默认关；开启后玩家按距离参与索敌）
+- 战斗：`!combat`（开启自动战斗：持续攻击 + 受击反击 + 低血量撤退）`!combat-off`（关闭）`!pvp`/`!pvp-off`（PvP 开关，默认关；开启后玩家按距离参与索敌）`!aggro nearest|threat`（索敌模式，默认 nearest 行为同旧；threat 按威胁分加权接入 perception/threat 单一数据源）
 - 感知：`!scan` `!players` `!entities` `!blocks` `!find <方块名>`（支持中文名）`!danger` `!threat`（距离加权威胁排序：血量/朝向/手持）
 - 挖掘：`!mine <方块名> [数量]`（自动走近/换工具/挖，24 格范围）
 - 建造：`!build <wall|floor|box|pillar|墙|地板|盒子|柱子> <方块名> <x1 y1 z1 x2 y2 z2>`（蓝图批量放置，上限 512 格，失败格跳过）

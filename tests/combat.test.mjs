@@ -4,12 +4,13 @@ import {
   pickWeapon,
   pickArmor,
   decideAction,
+  selectTarget,
   createCombatController
 } from '../lib/combat.mjs'
 
 // 假实体工厂
-function ent(id, name, x, y, z) {
-  return { id, name, position: { x, y, z, distanceTo(p) { return Math.hypot(this.x - p.x, this.y - p.y, this.z - p.z) } } }
+function ent(id, name, x, y, z, extra = {}) {
+  return { id, name, position: { x, y, z, distanceTo(p) { return Math.hypot(this.x - p.x, this.y - p.y, this.z - p.z) } }, ...extra }
 }
 
 describe('combat: findNearestHostile', () => {
@@ -125,5 +126,83 @@ describe('combat: createCombatController', () => {
     ctrl.step()
     expect(attacked).to.deep.equal(['zombie', 'Steve']) // 玩家更近，成为目标
     ctrl.stop()
+  })
+
+  it('threat 模式：远处持武器骷髅优先于近处空手僵尸（nearest 模式仍选近的）', () => {
+    const bot = {
+      username: 'LanBot', health: 20,
+      entity: { position: { x: 0, y: 0, z: 0, distanceTo(p) { return Math.hypot(p.x, p.y, p.z) } } },
+      entities: {
+        a: ent(1, 'zombie', 1.5, 0, 0),                                        // 近、空手
+        b: ent(2, 'skeleton', 3, 0, 0, { heldItem: { name: 'bow' } })          // 稍远、持弓
+      }
+    }
+    const attacked = []
+    const ctrl = createCombatController({
+      getBot: () => bot,
+      onAttack: (e) => attacked.push(e.name),
+      maxDistance: 16, tickMs: 500
+    })
+    ctrl.setEnabled(true)
+    // 默认 nearest：zombie 更近
+    ctrl.step()
+    expect(attacked).to.deep.equal(['zombie'])
+    expect(ctrl.getMode()).to.equal('nearest')
+    // 切 threat：skeleton 因武器加权威胁更高（同 base 下武器+2，距离衰减后仍更高）
+    attacked.length = 0
+    ctrl.setMode('threat')
+    ctrl.step()
+    expect(attacked).to.deep.equal(['skeleton'])
+    ctrl.stop()
+  })
+})
+
+describe('combat: selectTarget', () => {
+  const center = { x: 0, y: 0, z: 0, distanceTo(p) { return Math.hypot(p.x, p.y, p.z) } }
+
+  it('nearest 模式返回最近敌对 + threat 分', () => {
+    const entities = { a: ent(1, 'zombie', 10, 0, 0), b: ent(2, 'creeper', 3, 0, 0) }
+    const r = selectTarget(entities, center, { maxDistance: 16 })
+    expect(r.entity.name).to.equal('creeper')
+    expect(typeof r.threat).to.equal('number')
+  })
+
+  it('threat 模式返回威胁分最高（非最近）', () => {
+    const entities = {
+      a: ent(1, 'zombie', 1, 0, 0),
+      b: ent(2, 'blaze', 3, 0, 0, { heldItem: { name: 'bow' } }) // 武器加权（10+2）胜过近距空手（10）
+    }
+    const r = selectTarget(entities, center, { maxDistance: 16, mode: 'threat' })
+    expect(r.entity.id).to.equal(2)
+    expect(r.threat).to.be.greaterThan(selectTarget({ a: entities.a }, center, { mode: 'threat' }).threat)
+  })
+
+  it('threat 模式玩家仅在 pvpEnabled 时入池', () => {
+    const entities = {
+      z: ent(1, 'zombie', 5, 0, 0),
+      p: ent(2, 'player', 2, 0, 0, { username: 'Steve', heldItem: { name: 'iron_sword' } })
+    }
+    // 未开 PvP → 即使玩家武装且更近也不进池，选僵尸
+    const off = selectTarget(entities, center, { maxDistance: 16, mode: 'threat', pvpEnabled: false })
+    expect(off.entity.name).to.equal('zombie')
+    // 开 PvP → 武装玩家威胁更高，入池胜出
+    const on = selectTarget(entities, center, { maxDistance: 16, mode: 'threat', pvpEnabled: true, selfUsername: 'LanBot' })
+    expect(on.entity.username).to.equal('Steve')
+  })
+
+  it('threat 模式排除自己', () => {
+    const entities = { p: ent(1, 'player', 1, 0, 0, { username: 'LanBot' }), z: ent(2, 'zombie', 5, 0, 0) }
+    const r = selectTarget(entities, center, { maxDistance: 16, mode: 'threat', pvpEnabled: true, selfUsername: 'LanBot' })
+    expect(r.entity.name).to.equal('zombie')
+  })
+
+  it('空实体表 / 无 botPos 返回 null', () => {
+    expect(selectTarget({}, center, {})).to.equal(null)
+    expect(selectTarget({ a: ent(1, 'zombie', 1, 0, 0) }, null, {})).to.equal(null)
+  })
+
+  it('threat 模式 passive 生物不入池', () => {
+    const entities = { c: ent(1, 'cow', 1, 0, 0) }
+    expect(selectTarget(entities, center, { maxDistance: 16, mode: 'threat' })).to.equal(null)
   })
 })
