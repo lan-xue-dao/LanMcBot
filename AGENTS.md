@@ -71,6 +71,7 @@ lib/
   follow.mjs       #   跟随（P1）：findPlayerByName/decideFollow 纯函数 + 注入式 controller（默认关；combat 占用时 isBusy 让出 nav）
   trade.mjs        #   村民交易（P1）：formatTrades/canAfford/pickBestTrade 纯逻辑（归一化/可支付判定/最佳选单，零 bot 依赖可单测）
   enchant.mjs      #   附魔台（P1）：formatEnchantOptions/enchantOptionsReady/pickEnchantOption 纯逻辑（选档/就绪判定/经验校验，零 bot 依赖可单测）
+  farming.mjs      #   耕种收获（P1）：CROPS 表 + isRipe/selectRipeCrops/replantSeed 纯逻辑（成熟判定/补种映射，零 bot 依赖可单测）
   inventory.mjs    #   背包整理（P1）：planStackMerge（同类散堆合并规划）+ countFragments（碎片统计），零 bot 依赖可单测
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
@@ -112,6 +113,8 @@ tests/
 - 容器：`!chest 存 [保留物品名...]`（存入最近箱子/木桶，默认保留工具/武器/食物）`!chest 取 <物品> [数量]`
 - 背包：`!inv` `!tidy`（一键整理，合并同类散堆）`!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位）
 - 合成：`!recipes <物品>`（查配方与缺口）`!craft <物品> [数量]`（合成）`!gear`（自动装备最佳武器/护甲）`!smelt <物品> [数量]`（熔炉烧炼，自动补料/燃料/取产出）
+- 附魔：`!enchant <物品> [次数] [省]`（附魔台，需附近有台子/青金石/经验；默认最高档，加「省」选最低档）
+- 耕种：`!harvest`（收获附近成熟作物并尽力补种：麦/胡萝卜/土豆/甜菜/可可/下界疣/浆果）
 - 生存：`!eat`（开启自动进食，默认开启）`!eat-off`（关闭）
 - 跟随：`!follow <玩家名>`（跟随视野内玩家，>5m 自动 nav 靠近；默认关，战斗开启时自动让权）`!follow-off`（关闭）；裸 `!follow` 显示当前目标/用法
 - 交易：`!trade`（看最近村民报价）`!trade <物品> [数量]`（自动走近/选最佳可支付交易/下单，支持中文名）
@@ -148,6 +151,8 @@ tests/
 - `mine_block` - 挖掘指定方块（自动走近/换工具）
 - `build_blueprint` - 蓝图批量建造（墙/地板/空心盒/立柱，两角点，上限 512 格）
 - `smelt_item` - 熔炉烧炼（自动补原料/燃料并取回产出）
+- `enchant_item` - 附魔台附魔（自动走近/择优档，需附魔台/青金石/经验）
+- `harvest_crops` - 收获附近成熟作物并尽力补种（麦/胡萝卜/土豆/甜菜/可可/下界疣/浆果）
 - `list_trades` - 查看最近村民交易报价（归一化，含售罄/剩余次数）
 - `trade_with` - 与最近村民交易指定产物（自动走近/选最佳可支付交易，支持中英文名）
 - `threat_report` - 威胁排序（血量/朝向/手持/距离加权评分，降序）

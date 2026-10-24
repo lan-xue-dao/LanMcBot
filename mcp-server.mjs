@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, enchantItem, listTrades, tradeWith, tidyInventory, depositToChest, withdrawFromChest, moveTo, stopMove, setFollow, stopFollow, getFollowTarget, findFollowPlayer, isLoggedIn } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, enchantItem, harvestCrops, listTrades, tradeWith, tidyInventory, depositToChest, withdrawFromChest, moveTo, stopMove, setFollow, stopFollow, getFollowTarget, findFollowPlayer, isLoggedIn } from './lib/bot.mjs'
 import { threatReport } from './lib/perception/index.mjs'
 
 let globalBot = null
@@ -138,6 +138,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           prefer: { type: 'string', enum: ['best', 'cheap'], description: '选档偏好：best 最高档（默认）/ cheap 省经验' }
         },
         required: ['item']
+      }
+    },
+    {
+      name: 'harvest_crops',
+      description: '收获附近成熟作物并尽力补种（麦/胡萝卜/土豆/甜菜/可可/下界疣/浆果）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          radius: { type: 'number', description: '扫描半径，默认 24' },
+          replant: { type: 'boolean', description: '收获后是否补种，默认 true' }
+        }
       }
     },
     {
@@ -376,6 +387,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'enchant_item': {
         if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
         const r = await enchantItem(args.item, args.count || 1, { prefer: args.prefer === 'cheap' ? 'cheap' : 'best' })
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'harvest_crops': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await harvestCrops({ radius: args.radius || 24, replant: args.replant !== false })
         return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
       }
 

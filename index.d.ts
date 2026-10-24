@@ -128,7 +128,7 @@ export {
   setCombat, startCombat, stopCombat, setPvp, setAutoEat, isAutoEatEnabled,
   addRule, removeRule, listRules, handleTriggerEvent,
   getRecipes, craftItem, equipBestGear, attackTarget, mineBlock,
-  buildBlueprint, smeltItem, enchantItem, listTrades, tradeWith, tidyInventory,
+  buildBlueprint, smeltItem, enchantItem, harvestCrops, listTrades, tradeWith, tidyInventory,
   depositToChest, withdrawFromChest, findContainerBlock,
   moveTo, stopMove, placeBlock
 } from './lib/bot.mjs'
@@ -138,6 +138,8 @@ export { findPlayerByName, decideFollow, createFollowController } from './lib/fo
 export { formatTrades, canAfford, pickBestTrade } from './lib/trade.mjs'
 // 附魔能力域（纯函数，零 bot 依赖）
 export { formatEnchantOptions, enchantOptionsReady, pickEnchantOption } from './lib/enchant.mjs'
+// 耕种/收获能力域（纯函数，零 bot 依赖）
+export { CROPS, getCropInfo, isRipe, selectRipeCrops, replantSeed } from './lib/farming.mjs'
 // 背包整理能力域（纯函数，零 bot 依赖）
 export { planStackMerge, countFragments } from './lib/inventory.mjs'
 // 熔炉烧炼能力域（纯函数，零 bot 依赖）

@@ -473,6 +473,9 @@ bot.createBot((event, data) => {
     case 'enchanted':
       addMessage(logRaw(`✨ 已附魔 ${translateBlock(data.name)}（档${data.choice}/${data.xpLevel}级，累计 ${data.total}）`))
       break
+    case 'crop_harvested':
+      addMessage(logRaw(`🌾 已收获 ${translateBlock(data.name)}（累计 ${data.total}）`))
+      break
     case 'follow_lost':
       addMessage(logRaw(`🚶 跟丢了 ${data.name}（不在视野内）`))
       break
