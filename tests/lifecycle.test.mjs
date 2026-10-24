@@ -37,10 +37,11 @@ describe('lifecycle: createDeathHandler', () => {
     h.cancel()
   })
 
-  it('重生成功后取消后续重试', (done) => {
+  it('重生成功后取消后续重试', () => {
     let respawnCalls = 0
     let dead = true
     const events = []
+    const queue = [] // 确定性 fake-timer：scheduleRetry 入队，测试同步 drain（避免真实 setTimeout 在套件并发下 flaky）
     const h = createDeathHandler({
       onMessage: (t) => events.push(t),
       respawn: () => {
@@ -48,40 +49,37 @@ describe('lifecycle: createDeathHandler', () => {
         dead = false // 复活了
       },
       isDead: () => dead,
-      scheduleRetry: (fn, ms) => setTimeout(fn, ms),
+      scheduleRetry: (fn) => { queue.push(fn); return queue.length },
       maxAttempts: 3,
       retryMs: 5
     })
     h.onDeath()
     expect(respawnCalls).to.equal(1)
-    setTimeout(() => {
-      // 重试触发时 isDead()===false → 不应再 respawn
-      expect(respawnCalls).to.equal(1)
-      expect(events).to.not.include('respawn_failed')
-      h.cancel()
-      done()
-    }, 30)
+    while (queue.length) queue.shift()()
+    // 重试触发时 isDead()===false → 不应再 respawn
+    expect(respawnCalls).to.equal(1)
+    expect(events).to.not.include('respawn_failed')
+    h.cancel()
   })
 
-  it('持续死亡时按上限重试并发 respawn_failed', (done) => {
+  it('持续死亡时按上限重试并发 respawn_failed', () => {
     let respawnCalls = 0
     let dead = true
     const events = []
+    const queue = [] // 确定性 fake-timer（同上）
     const h = createDeathHandler({
       onMessage: (t) => events.push(t),
       respawn: () => { respawnCalls++ },
       isDead: () => dead,
-      scheduleRetry: (fn, ms) => setTimeout(fn, ms),
+      scheduleRetry: (fn) => { queue.push(fn); return queue.length },
       maxAttempts: 3,
       retryMs: 5
     })
     h.onDeath()
-    setTimeout(() => {
-      // 死亡(1) + 重试2次 = 共3次 respawn，然后失败
-      expect(respawnCalls).to.equal(3)
-      expect(events).to.include('respawn_failed')
-      done()
-    }, 60)
+    while (queue.length) queue.shift()()
+    // 死亡(1) + 重试2次 = 共3次 respawn，然后 respawn_failed
+    expect(respawnCalls).to.equal(3)
+    expect(events).to.include('respawn_failed')
   })
 
   it('onDeathHook 在死亡瞬间被调用', () => {
