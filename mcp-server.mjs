@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, listTrades, tradeWith, tidyInventory, depositToChest, withdrawFromChest, moveTo, stopMove, setFollow, stopFollow, getFollowTarget, findFollowPlayer, isLoggedIn } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, enchantItem, listTrades, tradeWith, tidyInventory, depositToChest, withdrawFromChest, moveTo, stopMove, setFollow, stopFollow, getFollowTarget, findFollowPlayer, isLoggedIn } from './lib/bot.mjs'
 import { threatReport } from './lib/perception/index.mjs'
 
 let globalBot = null
@@ -123,6 +123,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           item: { type: 'string', description: '原料名（中/英文，如 生牛肉/raw_beef）' },
           count: { type: 'number', description: '烧炼数量，默认 1' }
+        },
+        required: ['item']
+      }
+    },
+    {
+      name: 'enchant_item',
+      description: '附魔台附魔背包物品（自动走近台子/放料/择优档；需附近有附魔台、背包有青金石与足够经验）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          item: { type: 'string', description: '目标物品名（中/英文）' },
+          count: { type: 'number', description: '附魔次数，默认 1' },
+          prefer: { type: 'string', enum: ['best', 'cheap'], description: '选档偏好：best 最高档（默认）/ cheap 省经验' }
         },
         required: ['item']
       }
@@ -357,6 +370,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'smelt_item': {
         if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
         const r = await smeltItem(args.item, args.count || 1)
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
+      }
+
+      case 'enchant_item': {
+        if (!getBot()) return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        const r = await enchantItem(args.item, args.count || 1, { prefer: args.prefer === 'cheap' ? 'cheap' : 'best' })
         return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }], isError: !r.ok }
       }
 

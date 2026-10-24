@@ -141,6 +141,9 @@ bot.createBot((event, data) => {
     case 'traded':
       addMessage(logRaw(`💰 成交 ${translateBlock(data.name)} ×${data.count}（花费 ${data.price} ${translateBlock(data.costName || 'emerald')}）`))
       break
+    case 'enchanted':
+      addMessage(logRaw(`✨ 已附魔 ${translateBlock(data.name)}（档${data.choice}/${data.xpLevel}级，累计 ${data.total}）`))
+      break
     case 'follow_lost':
       addMessage(logRaw(`🚶 跟丢了 ${data.name}（不在视野内）`))
       break
