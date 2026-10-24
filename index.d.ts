@@ -122,7 +122,12 @@ export type Block = import('mineflayer').Block
 export type InventoryItem = import('mineflayer').InventoryItem
 
 // 导出函数
-export { createBot, getBot, destroyBot, isLoggedIn, isReconnecting, sendChat, quitBot } from './lib/bot.mjs'
+export {
+  createBot, getBot, destroyBot, isLoggedIn, isReconnecting, sendChat, quitBot,
+  setFollow, stopFollow, getFollowTarget, isFollowEnabled, findFollowPlayer
+} from './lib/bot.mjs'
+// 跟随能力域（纯函数 + 注入式 controller，零 bot 依赖）
+export { findPlayerByName, decideFollow, createFollowController } from './lib/follow.mjs'
 export { initNav, goto, stop, isMoving, destroy } from './lib/nav/index.mjs'
 export { scanEntities, scanPlayers, scanBlocks, findBlock, getDangerLevel } from './lib/perception/index.mjs'
 export { startPassivePerception, stopPassivePerception, getStatus } from './lib/perception/index.mjs'

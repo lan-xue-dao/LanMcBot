@@ -68,6 +68,7 @@ lib/
   triggers.mjs     #   触发引擎（P1）：when/match 规则解析与匹配纯逻辑 + 引擎（!rule 管理，事件: chat/death/health/join/leave；规则持久化到 rules.json，启动自动恢复）
   build.mjs        #   建造蓝图（P0-3 建造侧）：模板展开纯函数（generateBlueprint 墙/地板/空心盒/立柱 + checkBlueprint 上限 512）
   smelt.mjs        #   熔炉烧炼（P1 合成域）：燃料表 fuelTicks / pickFuel / nextFurnaceAction 纯逻辑（零 bot 依赖可单测）
+  follow.mjs       #   跟随（P1）：findPlayerByName/decideFollow 纯函数 + 注入式 controller（默认关；combat 占用时 isBusy 让出 nav）
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
   i18n.mjs         # 中文翻译（lib/data/zh_cn.json）
   minimap.mjs      # 小地图（MCC 算法）
@@ -109,6 +110,7 @@ tests/
 - 背包：`!inv` `!count <物品>` `!place <方块> <x> <y> <z> [px py pz]`（可选站位）
 - 合成：`!recipes <物品>`（查配方与缺口）`!craft <物品> [数量]`（合成）`!gear`（自动装备最佳武器/护甲）`!smelt <物品> [数量]`（熔炉烧炼，自动补料/燃料/取产出）
 - 生存：`!eat`（开启自动进食，默认开启）`!eat-off`（关闭）
+- 跟随：`!follow <玩家名>`（跟随视野内玩家，>5m 自动 nav 靠近；默认关，战斗开启时自动让权）`!follow-off`（关闭）；裸 `!follow` 显示当前目标/用法
 - 触发：`!rule add "when <事件> <匹配式> then <动作> [参数]"` `!rule list` `!rule del <序号>`（事件: chat/death/health/join/leave；匹配: /正则/ contains: exact: *；动作: say <文本> 或触发 trigger_action 事件）
 - 系统：`!help` `!exit/!quit` `!restart` `!connect` `!reconnect` `!mcp` `!mcp-stdio` `!mcp-sse`
 
@@ -146,6 +148,8 @@ tests/
 - `chest_withdraw` - 从最近容器取出物品
 - `move_to` - 寻路移动到指定坐标（自研 nav）
 - `stop_move` - 停止移动
+- `follow_player` - 跟随指定玩家（name 必填，需视野内；nav 靠近，combat 开启时让权）
+- `unfollow` - 停止跟随（同时清掉跟随驱动的导航移动）
 - `connect` - 连接服务器
 - `disconnect` - 断开连接
 

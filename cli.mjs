@@ -129,6 +129,18 @@ bot.createBot((event, data) => {
     case 'combat_pvp':
       addMessage(logRaw(data.enabled ? '⚔ PvP 已开启' : '⚔ PvP 已关闭'))
       break
+    case 'follow_started':
+      addMessage(logRaw(`🚶 开始跟随 ${data.name}`))
+      break
+    case 'follow_stopped':
+      addMessage(logRaw(`🚶 已停止跟随 ${data.name}`))
+      break
+    case 'follow_lost':
+      addMessage(logRaw(`🚶 跟丢了 ${data.name}（不在视野内）`))
+      break
+    case 'follow_move':
+      addMessage(logRaw(`🚶 向 ${data.name} 靠近 (${data.distance}m)`))
+      break
     case 'build_done':
       addMessage(logRaw(`🧱 建造 ${data.type}: 放置 ${data.placed}/${data.total}（跳过 ${data.skipped}）`))
       break

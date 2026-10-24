@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, depositToChest, withdrawFromChest, moveTo, stopMove } from './lib/bot.mjs'
+import { createBot, getBot, destroyBot, sendChat, getRecipes, craftItem, equipBestGear, attackTarget, mineBlock, buildBlueprint, smeltItem, depositToChest, withdrawFromChest, moveTo, stopMove, setFollow, stopFollow, getFollowTarget, findFollowPlayer, isLoggedIn } from './lib/bot.mjs'
 import { threatReport } from './lib/perception/index.mjs'
 
 let globalBot = null
@@ -197,6 +197,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: { type: 'object', properties: {} }
     },
     {
+      name: 'follow_player',
+      description: '跟随指定玩家（需在机器人视野内；距离超过 5 格自动用 nav 靠近，战斗开启时自动让出移动控制权）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: '目标玩家用户名（大小写不敏感）' }
+        },
+        required: ['name']
+      }
+    },
+    {
+      name: 'unfollow',
+      description: '停止跟随并清掉跟随驱动的导航移动',
+      inputSchema: { type: 'object', properties: {} }
+    },
+    {
       name: 'connect',
       description: '连接到Minecraft服务器',
       inputSchema: { type: 'object', properties: {} }
@@ -344,6 +360,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'stop_move': {
         const ok = stopMove()
         return { content: [{ type: 'text', text: ok ? '已停止移动' : '停止失败（nav 未初始化）' }], isError: !ok }
+      }
+
+      case 'follow_player': {
+        const b = getBot()
+        if (!b || !isLoggedIn()) {
+          return { content: [{ type: 'text', text: '未连接' }], isError: true }
+        }
+        const who = String(args.name || '').trim()
+        if (!who) {
+          return { content: [{ type: 'text', text: '缺少参数 name（目标玩家名）' }], isError: true }
+        }
+        const ent = findFollowPlayer(who)
+        if (!ent) {
+          return { content: [{ type: 'text', text: `找不到玩家「${who}」（需在视野内）` }], isError: true }
+        }
+        const ok = setFollow(who)
+        const d = b.entity && ent.position
+          ? Math.round(ent.position.distanceTo(b.entity.position) * 10) / 10
+          : null
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ ok, target: ok ? who : null, distance: d }, null, 2) }],
+          isError: !ok
+        }
+      }
+
+      case 'unfollow': {
+        const was = stopFollow()
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ ok: true, stopped: was, target: getFollowTarget() }, null, 2) }]
+        }
       }
 
       case 'connect': {
