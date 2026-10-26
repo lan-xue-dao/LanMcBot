@@ -41,6 +41,33 @@ npm run mcp:sse      # SSE
 
 ⚠️ `.env` 里的 `MCBOT_PASSWORD` 应保持为空，让加密文件生效；`.env`、`password.enc` 均不入库。
 
+## 构建单文件 exe（lanmcbot.exe）
+
+两种方式，按场景选：
+
+| 方式 | 命令 | 何时用 |
+|---|---|---|
+| 本地构建 | `npm run build:exe` | 开发时验证改动。快（~30s），但受本地 Node 版本影响 |
+| GitHub Actions | push 到 `main` | 发布用。环境固定可复现，产物在 Actions run 的 Artifacts 区下载 |
+
+产物：`dist/lanmcbot.exe`（~117 MB），CI 另打成 zip（~59 MB）便于下载。
+
+**构建链**（两段式，缺一不可）：
+
+```bash
+npm run build:bundle   # 1) esbuild: ESM 源码 → 单 CJS（node_modules 保持 external）
+npm run build:exe      # 2) pkg: CJS + node_modules + Node24 运行时 → 单 exe
+```
+
+**为什么不能直接用 pkg**：pkg 对 ESM 动态 `import()` 支持不完整——`index.js` 里 `await import('./lib/config.mjs')` 会报
+`ERR_MODULE_NOT_FOUND: Cannot find module 'C:\snapshot\mcbot\lib\config.mjs'`（`.mjs` 收进了快照但 ESM loader 不映射虚拟路径）。
+先 esbuild 转成 CJS 就绕开了。
+
+**为什么不能直接用 esbuild**：`--packages=external` 必须加。不加会把 minecraft-data 全部版本数据拼进 bundle
+（实测 475 MB，且加 `--metafile` 直接 OOM）。external 后项目源码只剩 ~196 KB，大依赖交给 pkg 快照。
+
+exe 运行时的配置/日志/规则文件都落在 **exe 所在目录**（不是 CWD），详见 AGENTS.md 的 `paths.mjs` 三态说明。
+
 ## CLI 命令（`!` 或全角 `！` 前缀）
 
 | 分类 | 命令 |

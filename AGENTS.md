@@ -56,7 +56,9 @@ index.js           # 入口，动态 import() 加载 cli.mjs 或 tui.mjs
 cli.mjs            # 纯 CLI 模式（readline）
 tui.mjs            # 全屏 TUI 模式（自研 ANSI 重绘，非 ink）
 mcp-server.mjs     # MCP 服务器（全局单例实例）
+smoke.mjs          # 实机冒烟：连服务器验证 登录→spawn→背包/玩家/方块/实体/状态 链路（node smoke.mjs [--timeout N]）
 lib/
+  paths.mjs        # 可写路径单一来源（三态：pkg exe=exe 旁 / esbuild bundle=CWD / node 直跑=仓库根）；日志/rules.json/.env/password.enc 全走它
   bot.mjs          # 核心：连接/重连/寻路/聊天指令（sendChat 统一出口，emit bot_chat）
   lifecycle.mjs    #   可单测纯逻辑：自动重生(createDeathHandler) + 重连判定(shouldReconnect)
   combat.mjs       #   战斗（P0-2）：可单测纯逻辑 + 注入式 controller；不引第三方 pvp（硬绑已删 pathfinder）
@@ -64,13 +66,13 @@ lib/
   craft.mjs        #   合成（P0-4）：零依赖纯逻辑（canCraft/ingredientsNeeded/matchCraftableByName）
   survival.mjs     #   自动进食（P0-4）：食物表/选食纯逻辑 + 注入式 controller（副手进食，默认开启）
   mining.mjs       #   挖掘（P0-3）：pickMineTarget/pickBestTool/nextAction 纯逻辑 + createMiner 注入式编排工厂（假 bot 可测运行期扫描/走近/换工具/挖循环）
-  containers.mjs   #   容器（P1）：箱子/木桶存取规划纯逻辑（planDeposit/planWithdraw/pickNearestContainer）
+  containers.mjs   #   容器（P1）：planDeposit/planWithdraw/pickNearestContainer 纯逻辑 + createContainerOps 注入式编排工厂（开箱超时/箱满安全返回/关箱必执行，假箱子可测）
   triggers.mjs     #   触发引擎（P1）：when/match 规则解析与匹配纯逻辑 + 引擎（!rule 管理，事件: chat/death/health/join/leave；规则持久化到 rules.json，启动自动恢复）
   build.mjs        #   建造蓝图（P0-3 建造侧）：模板展开纯函数（generateBlueprint 墙/地板/空心盒/立柱 + checkBlueprint 上限 512）
-  smelt.mjs        #   熔炉烧炼（P1 合成域）：燃料表 fuelTicks / pickFuel / nextFurnaceAction 纯逻辑（零 bot 依赖可单测）
+  smelt.mjs        #   熔炉烧炼（P1 合成域）：fuelTicks/pickFuel/nextFurnaceAction 纯逻辑 + createSmelter 注入式编排工厂（燃料排除原料，假熔炉可测）
   follow.mjs       #   跟随（P1）：findPlayerByName/decideFollow 纯函数 + 注入式 controller（默认关；combat 占用时 isBusy 让出 nav）
   trade.mjs        #   村民交易（P1）：formatTrades/canAfford/pickBestTrade 纯逻辑（含 remaining>=count 校验）+ createTrader 注入式编排工厂（假 villager 可测）
-  enchant.mjs      #   附魔台（P1）：formatEnchantOptions/enchantOptionsReady/pickEnchantOption 纯逻辑（选档/就绪判定/经验校验，零 bot 依赖可单测）
+  enchant.mjs      #   附魔台（P1）：formatEnchantOptions/enchantOptionsReady/pickEnchantOption 纯逻辑 + createEnchanter 注入式编排工厂（四类挂起源头均超时收敛，假附魔台可测）
   farming.mjs      #   耕种收获（P1）：CROPS 表 + isRipe/selectRipeCrops/replantSeed 纯逻辑 + createHarvester 注入式编排工厂（假 bot 可测运行期循环/走近/补种语义）
   inventory.mjs    #   背包整理（P1）：planStackMerge（同类散堆合并规划）+ countFragments（碎片统计），零 bot 依赖可单测
   commands.mjs     # CLI 命令（!前缀；restart 优化为 1s 延迟+超时保护）
@@ -226,6 +228,56 @@ tests/
 
 `mineflayer-pathfinder ^2.4.5` 死依赖已在提交 `34938af` 删除（nav 已完全替代，无引用）。
 
+## 单文件 exe / Packaging
+
+**`dist/lanmcbot.exe`**：两段式构建，缺一不可。
+
+```bash
+npm run build:exe   # = build:bundle(esbuild) + pkg
+```
+
+### 为什么是两段式（两个都会立刻踩的坑）
+
+1. **不能直接用 pkg 打包 ESM 项目**：pkg 的 ESM loader 不映射快照虚拟路径，`index.js` 里 `await import('./lib/config.mjs')`
+   会报 `ERR_MODULE_NOT_FOUND: Cannot find module 'C:\snapshot\mcbot\lib\config.mjs'`。→ 先用 esbuild 转成单 CJS。
+2. **esbuild 必须 `--packages=external`**：不加会把 minecraft-data 全版本数据拼进 bundle（实测 475 MB，
+   加 `--metafile` 直接 OOM）。external 后源码仅 ~196 KB，大依赖交给 pkg 快照。
+
+### `import.meta.url` 在 CJS bundle 里是空串 —— 三处曾崩
+
+esbuild 转 CJS 后 `import.meta.url` 为空，`fileURLToPath()` 抛 `ERR_INVALID_ARG_TYPE`。**新增代码禁止用
+`import.meta.url` 拼路径**，一律走：
+
+- **可写文件**（日志/rules.json/.env/password.enc）→ `lib/paths.mjs` 的 `dataDir()`
+- **只读资源**（lib/data/*.json）→ 参考 i18n.mjs / minimap.mjs 的 `resourceDirs` 回退链（先 import.meta.url，
+  失败则 `dataDir()/lib` 与 `dataDir()`）
+- **不要用 `createRequire(import.meta.url)`**（同样崩）；CJS 内置模块直接 `import fs from 'fs'`
+
+### `paths.dataDir()` 三态
+
+| 运行形态 | 可写目录 |
+|---|---|
+| pkg exe（`process.pkg` 存在） | **exe 所在目录**（`path.dirname(process.execPath)`）——双击运行时 CWD 不定，绝不能靠 CWD |
+| esbuild bundle 直跑（import.meta.url 为空） | `process.cwd()`（CI/冒烟场景） |
+| node 直跑（开发） | 仓库根 —— 与历史行为完全一致 |
+
+pkg 快照内的文件系统**只读**，任何写操作都必须落在 `dataDir()`。
+
+### 登录前中间态守卫
+
+mineflayer 在 login 完成前 `bot` 对象已存在，但 `setControlState` 等方法**尚未挂载**（exe 的网络时序更易踩到）。
+`bot.mjs` 与 `nav/controller.mjs` 的 `clearControls` 都加了 `typeof bot.setControlState !== 'function'` 守卫，勿删。
+
+### 两种构建方式何时用
+
+- **本地** `npm run build:exe`：开发验证改动，快（~30s），受本地 Node 版本影响
+- **GitHub Actions**（push 到 main）：发布用，环境固定可复现；`.github/workflows/build-exe.yml`
+  依次跑 `npm ci` → 测试门槛 → 构建 → 20s 冒烟（验证 banner）→ 压 zip → 上传 artifact
+
+**CI 测试门槛是三重检查**（只靠 exit code 会假绿）：exit code=0、有 `N passing` 计数、**无 `N failing`**、
+且 `N >= 250`。mocha 在 0 用例时也返回 0，所以计数检查不能省。
+注意 `& npm test 2>&1 | Out-String` 会覆盖 `$LASTEXITCODE`，必须先取码再处理输出。
+
 ## 日志 / Logs
 
 - `chat_YYYY-MM-DD.log` — 聊天记录（收：`chat`/`messagestr` 事件；发：`bot.mjs` sendChat → `bot_chat` 事件）。**发消息统一走 `sendChat(text)`，勿直接 `bot.chat()`**，否则不进记录；UI 层勿再手动补记（会双写）
@@ -246,7 +298,7 @@ tests/
 ## 平台 / Platform
 
 - `package.json` 是 `"type": "commonjs"`，界面/库文件用 `.mjs` ESM，`index.js` 动态 `import()`；新增文件注意扩展名
-- `.mjs` 里**没有 `require`**：需要时用 `createRequire(import.meta.url)`（`lib/config.mjs` 读 `config.json` 即如此），或改 `import()`
+- `.mjs` 里**没有 `require`**：CJS 内置模块直接 `import`（`import fs from 'fs'`）。**不要用 `createRequire(import.meta.url)`** —— 打包成 CJS 后 `import.meta.url` 为空会崩（见「单文件 exe」节）
 - **Node v24 无 `crypto.createCipher`/`createDecipher`**（已移除），只能用 `createCipheriv`/`createDecipheriv`
 - **二进制 Buffer 绝不能以 `'utf8'` 写文件**：`writeFileSync(f, buf, 'utf8')` 会把非法字节替换成 U+FFFD 而永久损坏数据（曾致密文解不开）。密文一律转 hex/base64 文本再写
 - **`bot.blockAt` 只接受真 Vec3 实例**（内部调 `pos.floored()`）：纯对象抛 TypeError、传三个数字静默返回 null —— 全库统一 `vec3(...)` 或 `pos.offset()`，勿用三参数/裸对象
