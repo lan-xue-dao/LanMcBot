@@ -1,0 +1,47 @@
+# 每次 push 到 main 自动构建单文件 lanmcbot.exe 并上传 artifact。
+# 产物在 Actions 页面对应 run 的 Artifacts 区下载（lanmcbot.exe）。
+# 验证门槛：npm test 全绿 + exe 能启动打印 banner（--timeout 冒烟）才算构建成功。
+
+name: build-exe
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test (must pass before packaging)
+        run: npm test
+
+      - name: Build single-file exe
+        run: npm run build:exe
+
+      - name: Smoke the exe (starts, prints banner, exits cleanly)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath .\dist\lanmcbot.exe -NoNewWindow -PassThru `
+                 -RedirectStandardOutput smoke-out.txt -RedirectStandardError smoke-err.txt
+          Start-Sleep -Seconds 20
+          if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+          $out = Get-Content smoke-out.txt -Raw
+          if ($out -notmatch 'LanMcBot 启动成功') { Write-Host $out; Write-Host (Get-Content smoke-err.txt -Raw); throw 'exe smoke failed: banner not printed' }
+          Write-Host 'exe smoke passed'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lanmcbot-windows-x64
+          path: dist/lanmcbot.exe
+          if-no-files-found: error
