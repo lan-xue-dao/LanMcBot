@@ -23,7 +23,17 @@ jobs:
         run: npm ci
 
       - name: Test (must pass before packaging)
-        run: npm test
+        shell: pwsh
+        run: |
+          # 不能只靠 exit code：mocha 在 0 用例时也返回 0（glob 失效 → 假绿）。
+          # 显式断言「通过数 >= 250」，把这道门槛做实。
+          $out = npm test 2>&1 | Out-String
+          Write-Host $out
+          if ($LASTEXITCODE -ne 0) { throw "npm test failed (exit $LASTEXITCODE)" }
+          if ($out -notmatch '(\d+) passing') { throw 'npm test produced no passing count' }
+          $passed = [int]$Matches[1]
+          if ($passed -lt 250) { throw "only $passed tests passed, expected >= 250" }
+          Write-Host "tests passed: $passed"
 
       - name: Build single-file exe
         run: npm run build:exe
@@ -39,9 +49,13 @@ jobs:
           if ($out -notmatch 'LanMcBot 启动成功') { Write-Host $out; Write-Host (Get-Content smoke-err.txt -Raw); throw 'exe smoke failed: banner not printed' }
           Write-Host 'exe smoke passed'
 
+      - name: Compress artifact (exe 59MB → zip ~20MB，下载更快)
+        shell: pwsh
+        run: Compress-Archive -Path dist/lanmcbot.exe -DestinationPath dist/lanmcbot-windows-x64.zip -CompressionLevel Optimal
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: lanmcbot-windows-x64
-          path: dist/lanmcbot.exe
+          path: dist/lanmcbot-windows-x64.zip
           if-no-files-found: error
