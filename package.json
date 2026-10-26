@@ -5,9 +5,18 @@
   "license": "ISC",
   "type": "commonjs",
   "main": "index.js",
+  "bin": {
+    "lanmcbot": "dist/lanmcbot.cjs"
+  },
+  "pkg": {
+    "assets": ["lib/data/**/*"],
+    "targets": ["node24-win-x64"]
+  },
   "types": "index.d.ts",
   "scripts": {
     "start": "node index.js",
+    "build:bundle": "esbuild index.js --bundle --platform=node --format=cjs --packages=external --outfile=dist/lanmcbot.cjs --log-level=warning",
+    "build:exe": "npm run build:bundle && pkg dist/lanmcbot.cjs --config package.json --output dist/lanmcbot.exe --compress GZip --no-bytecode --public",
     "mcp": "node mcp-server.mjs",
     "mcp:sse": "node mcp-server.mjs --transport=sse",
     "mcp:stdio": "node mcp-server.mjs --transport=stdio",
@@ -23,6 +32,7 @@
     "ws": "^8.21.2"
   },
   "devDependencies": {
+    "@yao-pkg/pkg": "^6.24.0",
     "chai": "^5.3.3",
     "mocha": "^10.8.2"
   }

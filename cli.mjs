@@ -7,15 +7,13 @@ import { translateEntity, translateMessage, translateBlock } from './lib/i18n.mj
 import { formatKickReason } from './lib/utils.mjs'
 
 console.log(`
-  _   _                    ____        _
- | \\ | |   __ _    __ _   | __ )      | |   ___
- |  \\| |  / _\` |  / _\` |  |  _ \\   _  | |  / _ \\
- | |\\  | | (_| | | (_| |  | |_) | |_| | | |  __/
- |_| \\_|  \\__,_|  \\__, |  |____/   \\__,_|  \\___ |
-                  |___/                     |_/
- 启动成功! 输入 !help 查看可用命令，输入消息直接发送到游戏
+  _    _____ __  __ ___  ____   ___  ____
+ | |  / ____|  \\/  |_ _||  _ \\ / _ \\|  _ \\
+ | | | |  _| |\\  /| | | | |_) | | | | |_) |
+ | |_| | |___| |  \\| | | |  _ <| |_| |  _ <
+ |____/ \\_____|_|  \\_|___|_| \\_\\___/|_| \\_\\
+ LanMcBot 启动成功! 输入 !help 查看可用命令，输入消息直接发送到游戏
 `)
-
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
