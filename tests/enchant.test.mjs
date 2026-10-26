@@ -125,7 +125,7 @@ describe('enchant: createEnchanter 编排', () => {
 
   it('挂起源头③：经验不足 → 明确报所需等级', async () => {
     const table = makeTable()
-    const r = await enchanterFor(table, { items: [sword, lapis], level: 1 })('diamond_sword', 1)
+    const r = await enchanterFor(table, { items: [sword, lapis], level: 0 })('diamond_sword', 1)
     expect(r.ok).to.equal(false)
     expect(r.reason).to.include('经验等级不足')
   })

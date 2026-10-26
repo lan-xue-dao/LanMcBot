@@ -25,13 +25,18 @@ jobs:
       - name: Test (must pass before packaging)
         shell: pwsh
         run: |
-          # 不能只靠 exit code：mocha 在 0 用例时也返回 0（glob 失效 → 假绿）。
-          # 显式断言「通过数 >= 250」，把这道门槛做实。
-          $out = npm test 2>&1 | Out-String
+          # 三重门槛，缺一不可：
+          #   1) exit code 为 0（真的没失败用例）
+          #   2) 有 passing 计数（mocha 在 0 用例/glob 失效时也返回 0 → 防假绿）
+          #   3) 通过数 >= 250（防止用例被静默跳过）
+          # 注意：`2>&1 | Out-String` 会覆盖 $LASTEXITCODE，所以先取码再处理输出。
+          $out = & npm test 2>&1 | Out-String
+          $code = $LASTEXITCODE
           Write-Host $out
-          if ($LASTEXITCODE -ne 0) { throw "npm test failed (exit $LASTEXITCODE)" }
+          if ($code -ne 0) { throw "npm test failed (exit $code)" }
           if ($out -notmatch '(\d+) passing') { throw 'npm test produced no passing count' }
           $passed = [int]$Matches[1]
+          if ($out -match '(\d+) failing') { throw "npm test reported $($Matches[1]) failing" }
           if ($passed -lt 250) { throw "only $passed tests passed, expected >= 250" }
           Write-Host "tests passed: $passed"
 
